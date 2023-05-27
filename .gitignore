@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Ignore build directory
+/build/
+
+# Ignore all settings within .vscode folder
+/.vscode/
