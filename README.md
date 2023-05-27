@@ -15,6 +15,7 @@ Here is a basic usage example:
 
 citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-json/blob/master/citylots.json
 
+```
 time fastgron ~/Downloads/citylots.json > /dev/null
 fastgron ~/Downloads/citylots.json > /dev/null 0.95s user 0.08s system 99% cpu 1.029 total
 
@@ -31,6 +32,7 @@ json.features[139041].properties.STREET = "UTAH";
 json.features[139489].properties.STREET = "UTAH";
 fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
 rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
+```
 
 ## Prerequisites
 
