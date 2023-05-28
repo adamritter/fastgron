@@ -11,16 +11,20 @@ Here is a basic usage example:
 ./fastgron citylots.json
 ```
 
-## Speed (80x speedup compared to gron on 190MB file)
+## Speed (40x speedup compared to gron --no-sort on 190MB file)
 
 citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-json/blob/master/citylots.json
 
 ```
 time fastgron ~/Downloads/citylots.json > /dev/null
-fastgron ~/Downloads/citylots.json > /dev/null 0.95s user 0.08s system 99% cpu 1.029 total
+./fastgron ~/Downloads/citylots.json --sort > /dev/null  0.97s user 0.07s system 99% cpu 1.041 total
+
+time gron --no-sort ~/Downloads/citylots.json  >/dev/null
+gron --no-sort ~/Downloads/citylots.json > /dev/null  30.12s user 36.74s system 161% cpu 41.501 total
 
 time gron ~/Downloads/citylots.json > /dev/null
 gron ~/Downloads/citylots.json > /dev/null 52.34s user 48.46s system 117% cpu 1:25.80 total
+
 
 time fastgron ~/Downloads/citylots.json | rg UTAH
 json.features[132396].properties.STREET = "UTAH";

@@ -8,6 +8,26 @@ string out;
 const string strue = "true";
 const string sfalse = "false";
 
+bool is_js_identifier(string_view s)
+{
+    if (s.empty())
+    {
+        return false;
+    }
+    if (!isalpha(s[0]) && s[0] != '_')
+    {
+        return false;
+    }
+    for (size_t i = 1; i < s.size(); i++)
+    {
+        if (!isalnum(s[i]) && s[i] != '_')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 inline int raw_json_string_length(const ondemand::raw_json_string &str)
 {
     bool in_escape = false;
@@ -45,7 +65,7 @@ void recursive_print_gron(ondemand::value element, string &path)
     {
     case ondemand::json_type::array:
     {
-        fast_io::io::print(path, " = []\n");
+        fast_io::io::print(path, " = [];\n");
         uint64_t index = 0;
         size_t orig_base_len = path.size();
         path.append("[");
@@ -64,20 +84,26 @@ void recursive_print_gron(ondemand::value element, string &path)
     }
     case ondemand::json_type::object:
     {
-        fast_io::io::print(path, " = {}\n");
+        fast_io::io::print(path, " = {};\n");
 
-        size_t orig_base_len = path.size();
-        path.append(".");
         size_t base_len = path.size();
         for (auto field : element.get_object())
         {
             auto key = field.unescaped_key();
-            string_view key2 = key.value();
-            path.append(key2);
+            if (!is_js_identifier(key.value()))
+            {
+                path.append("[\"");
+                path.append(key.value());
+                path.append("\"]");
+            }
+            else
+            {
+                path.append(".");
+                path.append(key.value());
+            }
             recursive_print_gron(field.value(), path);
             path.erase(base_len);
         }
-        path.erase(orig_base_len);
         break;
     }
     case ondemand::json_type::number:
@@ -111,20 +137,19 @@ void recursive_print_gron(ondemand::value element, string &path)
     }
 }
 
-int main(
-    int argc,
-    char *argv[])
+int main(int argc, char *argv[])
 {
+    ondemand::parser parser;
+    // get string name from command line
+    if (argc < 2)
+    {
+        cerr << "Usage: " << argv[0] << " <json>" << endl;
+        return EXIT_FAILURE;
+    }
+    string fn = argv[1];
     for (int i = 0; i < 1; i++)
     {
-        ondemand::parser parser;
-        // get string name from command line
-        if (argc < 2)
-        {
-            cerr << "Usage: " << argv[0] << " <json>" << endl;
-            return EXIT_FAILURE;
-        }
-        string fn = argv[1];
+
         padded_string json = padded_string::load(fn);
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
