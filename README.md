@@ -8,7 +8,7 @@ It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files.
 Here is a basic usage example:
 
 ```bash
-> gron testdata/two.json 
+> fastgron testdata/two.json 
 json = {};
 json.name = "Tom";
 json.github = "https://github.com/tomnomnom/";
