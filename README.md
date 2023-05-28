@@ -1,14 +1,24 @@
 # fastgron
 
 `fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson and fast_io libraries.
-It's 40x faster than gron on big files.
+It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files.
 
 ## Usage
 
 Here is a basic usage example:
 
 ```bash
-./fastgron citylots.json
+> gron testdata/two.json 
+json = {};
+json.name = "Tom";
+json.github = "https://github.com/tomnomnom/";
+json.likes = [];
+json.likes[0] = "code";
+json.likes[1] = "cheese";
+json.likes[2] = "meat";
+json.contact = {};
+json.contact.email = "mail@tomnomnom.com";
+json.contact.twitter = "@TomNomNom";
 ```
 
 ## Speed (40x speedup compared to gron --no-sort on 190MB file)
