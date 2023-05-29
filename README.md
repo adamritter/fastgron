@@ -18,7 +18,7 @@ Here is a basic usage example:
         "twitter": "@TomNomNom"
     }
 }
-> fastgron testdata/two.json 
+> fastgron testdata/two.json
 json = {};
 json.name = "Tom";
 json.github = "https://github.com/tomnomnom/";
@@ -31,6 +31,25 @@ json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
 ```
 
+## JSON lines (-s or --stream)
+
+```fastgron testdata/stream.json -s
+json = []
+json[0] = {};
+json[0].one = 1;
+json[0].two = 2;
+json[0].three = [];
+json[0].three[0] = 1;
+json[0].three[1] = 2;
+json[0].three[2] = 3;
+json[1] = {};
+json[1].one = 1;
+json[1].two = 2;
+json[1].three = [];
+json[1].three[0] = 1;
+json[1].three[1] = 2;
+json[1].three[2] = 3;
+```
 
 ## Speed (40x speedup compared to gron --no-sort on 190MB file)
 
@@ -59,10 +78,10 @@ fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
 rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
 ```
 
-
 ## Quick Install
 
-MacOS, Linux: 
+MacOS, Linux:
+
 ```bash
 brew install adamritter/homebrew-fastgron/fastgron
 ```

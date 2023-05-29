@@ -136,24 +136,71 @@ void recursive_print_gron(ondemand::value element, string &path)
     }
     }
 }
+#include <cstring> // for strcmp
+
+// Parse command-line options
+struct options
+{
+    std::string filename;
+    bool stream;
+};
+
+options parse_options(int argc, char *argv[])
+{
+    options opts;
+    opts.stream = false;
+
+    // Check all arguments
+    for (int i = 1; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "--stream") == 0 || strcmp(argv[i], "-s") == 0)
+        {
+            opts.stream = true;
+        }
+        else
+        {
+            opts.filename = argv[i]; // Assume this is the filename
+        }
+    }
+
+    return opts;
+}
 
 int main(int argc, char *argv[])
 {
     ondemand::parser parser;
-    // get string name from command line
-    if (argc < 2)
+
+    options opts = parse_options(argc, argv);
+
+    // Check if filename is provided
+    if (opts.filename.empty())
     {
-        cerr << "Usage: " << argv[0] << " <json>" << endl;
+        cerr << "Error: No input file provided." << endl;
         return EXIT_FAILURE;
     }
-    string fn = argv[1];
-    for (int i = 0; i < 1; i++)
-    {
 
-        padded_string json = padded_string::load(fn);
+    // Execute as a stream
+    if (opts.stream)
+    {
+        padded_string json = padded_string::load(opts.filename);
+        ondemand::document_stream docs = parser.iterate_many(json);
+        int index = 0;
+        printf("json = [];\n");
+        for (auto doc : docs)
+        {
+            string path = "json[" + to_string(index++) + "]";
+            recursive_print_gron(doc, path);
+        }
+    }
+    // Execute as single document
+    else
+    {
+        padded_string json = padded_string::load(opts.filename);
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
         string path = "json";
         recursive_print_gron(val, path);
     }
+
+    return EXIT_SUCCESS;
 }
