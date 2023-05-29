@@ -38,7 +38,7 @@ jobs:
           cmake --build . --verbose
 
   build-mac:
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -47,6 +47,9 @@ jobs:
         uses: aminya/setup-cpp@v0.28.0
         with:
           compiler-version: llvm
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_13.3.app
 
       - name: Build
         run: |
