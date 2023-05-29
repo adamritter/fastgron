@@ -4,7 +4,9 @@
 It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files.
 
 ## Quick Install
+
 MacOS, Linux: brew install adamritter/homebrew-fastgron/fastgron
+
 Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
 
 ## Usage
