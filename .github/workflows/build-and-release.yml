@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   build-linux:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up C++ environment
-        uses: actions/setup-cpp@v1
+        uses: aminya/setup-cpp@v0.28.0
         with:
           compiler-version: gcc-10
 
@@ -67,7 +67,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up C++ environment
-        uses: actions/setup-cpp@v1
+        uses: aminya/setup-cpp@v0.28.0
         with:
           compiler-version: gcc-10
 
@@ -87,4 +87,3 @@ jobs:
           asset_path: ./build/fastgron
           asset_name: fastgron-mac
           asset_content_type: application/octet-stream
-
