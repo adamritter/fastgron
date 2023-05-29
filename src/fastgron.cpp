@@ -165,23 +165,53 @@ options parse_options(int argc, char *argv[])
     return opts;
 }
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <vector>
+#include <iostream>
+
+std::string readFileIntoString(int fd)
+{
+    std::vector<char> buffer(1000000);
+    std::string content;
+
+    ssize_t bytesRead = 0;
+    while ((bytesRead = read(fd, buffer.data(), buffer.size())) > 0)
+    {
+        content.append(buffer.data(), bytesRead);
+    }
+
+    if (bytesRead == -1)
+    {
+        fast_io::io::perr("Failed to read file\n");
+        return "";
+    }
+
+    close(fd);
+    return content;
+}
+
 int main(int argc, char *argv[])
 {
     ondemand::parser parser;
 
     options opts = parse_options(argc, argv);
-
+    padded_string json;
     // Check if filename is provided
-    if (opts.filename.empty())
+    if (opts.filename.empty() || opts.filename == "-")
     {
-        fast_io::io::perr("Usage: fastgron [options] <filename>\n");
-        return EXIT_FAILURE;
+        // Load string from stdin
+        json = padded_string(readFileIntoString(0));
+    }
+    else
+    {
+        json = padded_string::load(opts.filename);
     }
 
     // Execute as a stream
     if (opts.stream)
     {
-        padded_string json = padded_string::load(opts.filename);
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
         fast_io::io::print("json = [];\n");
@@ -194,7 +224,6 @@ int main(int argc, char *argv[])
     // Execute as single document
     else
     {
-        padded_string json = padded_string::load(opts.filename);
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
         string path = "json";
