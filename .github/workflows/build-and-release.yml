@@ -24,15 +24,17 @@ jobs:
           cmake ..
           cmake --build .
 
-      - name: Upload binary
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./build/fastgron
-          asset_name: fastgron-linux
-          asset_content_type: application/octet-stream
+          files: |
+            build/fastgron
+          tag_name: ${{ github.ref }}
+          body: |
+            ${{ github.event.release.body }}
+          draft: false
+          prerelease: false
 
   build-windows:
     runs-on: windows-latest
@@ -50,15 +52,17 @@ jobs:
           cmake -G "MinGW Makefiles" ..
           cmake --build .
 
-      - name: Upload binary
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./build/fastgron.exe
-          asset_name: fastgron-windows.exe
-          asset_content_type: application/octet-stream
+          files: |
+            build/fastgron.exe
+          tag_name: ${{ github.ref }}
+          body: |
+            ${{ github.event.release.body }}
+          draft: false
+          prerelease: false
 
   build-mac:
     runs-on: macos-latest
@@ -78,12 +82,14 @@ jobs:
           cmake ..
           cmake --build .
 
-      - name: Upload binary
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./build/fastgron
-          asset_name: fastgron-mac
-          asset_content_type: application/octet-stream
+          files: |
+            build/fastgron
+          tag_name: ${{ github.ref }}
+          body: |
+            ${{ github.event.release.body }}
+          draft: false
+          prerelease: false
