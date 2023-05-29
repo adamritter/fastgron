@@ -9,11 +9,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up C++ environment
-        uses: aminya/setup-cpp@v0.28.0
-        with:
-          compiler-version: gcc-10
-
       - name: Build
         run: |
           mkdir build

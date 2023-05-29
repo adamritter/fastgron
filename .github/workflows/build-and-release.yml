@@ -12,11 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up C++ environment
-        uses: aminya/setup-cpp@v0.28.0
-        with:
-          compiler-version: gcc-10
-
       - name: Build
         run: |
           mkdir build
@@ -24,16 +19,12 @@ jobs:
           cmake ..
           cmake --build .
 
-      - name: Rename binary
-        run: |
-          mv build/fastgron build/fastgron-ubuntu
-
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: fastgron-ubuntu
-          path: build/fastgron-ubuntu
+          path: build/fastgron
 
   build-windows:
     runs-on: windows-latest
@@ -55,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: fastgron.exe
+          name: fastgron-windows
           path: build/fastgron.exe
 
   build-mac:
@@ -76,16 +67,12 @@ jobs:
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build .
 
-      - name: Rename binary
-        run: |
-          mv build/fastgron build/fastgron-mac
-
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: fastgron-mac
-          path: build/fastgron-mac
+          path: build/fastgron
 
   release:
     needs: [build-linux, build-windows, build-mac]
@@ -105,9 +92,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            fastgron.exe
-            fastgron-ubuntu
-            fastgron-mac
+            fastgron-windows/fastgron.exe
+            fastgron-ubuntu/fastgron
+            fastgron-mac/fastgron
 
           tag_name: ${{ github.ref }}
           body: |
