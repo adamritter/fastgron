@@ -125,3 +125,15 @@ Here are the steps to build, test, and install `fastgron`:
    ```bash
    sudo make install
    ```
+
+## TODO
+
+These features need to be implemented to be compatible with gron (and add a few more features):
+
+- Sort keys
+- Filter paths
+- Grep by regexp / case sensitive/insernsitive / text
+- Ungron
+- HTTP support
+- HTTPS support
+- Color terminal support
