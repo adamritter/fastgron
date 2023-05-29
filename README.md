@@ -3,6 +3,10 @@
 `fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson and fast_io libraries.
 It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files.
 
+## Quick Install
+MacOS, Linux: brew install adamritter/homebrew-fastgron/fastgron
+Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
+
 ## Usage
 
 Here is a basic usage example:
