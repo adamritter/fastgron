@@ -19,12 +19,16 @@ jobs:
           cmake ..
           cmake --build .
 
+      - name: Rename binary
+        run: |
+          mv build/fastgron build/fastgron-ubuntu
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: fastgron-ubuntu
-          path: build/fastgron
+          path: build/fastgron-ubuntu
 
   build-windows:
     runs-on: windows-latest
@@ -67,12 +71,16 @@ jobs:
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build .
 
+      - name: Rename binary
+        run: |
+          mv build/fastgron build/fastgron-mac
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: fastgron-mac
-          path: build/fastgron
+          path: build/fastgron-mac
 
   release:
     needs: [build-linux, build-windows, build-mac]
@@ -93,8 +101,8 @@ jobs:
         with:
           files: |
             fastgron-windows/fastgron.exe
-            fastgron-ubuntu/fastgron
-            fastgron-mac/fastgron
+            fastgron-ubuntu/fastgron-ubuntu
+            fastgron-mac/fastgron-mac
 
           tag_name: ${{ github.ref }}
           body: |
