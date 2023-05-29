@@ -58,5 +58,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/c++  ..
+          # Use cmake with brew llvm 15 c++ compiler
+
+          cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build . --verbose
