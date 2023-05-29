@@ -58,5 +58,5 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_CXX_COMPILER=/usr/bin/g++  ..
+          cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/c++  ..
           cmake --build . --verbose
