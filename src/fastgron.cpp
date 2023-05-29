@@ -1,4 +1,3 @@
-#include <iostream>
 #include "simdjson.h"
 #include <fast_io.h>
 using namespace simdjson;
@@ -175,7 +174,7 @@ int main(int argc, char *argv[])
     // Check if filename is provided
     if (opts.filename.empty())
     {
-        cerr << "Error: No input file provided." << endl;
+        fast_io::io::perr("Usage: fastgron [options] <filename>\n");
         return EXIT_FAILURE;
     }
 
@@ -185,7 +184,7 @@ int main(int argc, char *argv[])
         padded_string json = padded_string::load(opts.filename);
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
-        printf("json = [];\n");
+        fast_io::io::print("json = [];\n");
         for (auto doc : docs)
         {
             string path = "json[" + to_string(index++) + "]";
