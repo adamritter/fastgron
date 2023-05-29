@@ -35,6 +35,7 @@ jobs:
             ${{ github.event.release.body }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GH_PAT }}
 
   build-windows:
     runs-on: windows-latest
@@ -63,6 +64,7 @@ jobs:
             ${{ github.event.release.body }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GH_PAT }}
 
   build-mac:
     runs-on: macos-latest
@@ -93,3 +95,4 @@ jobs:
             ${{ github.event.release.body }}
           draft: false
           prerelease: false
+          token: ${{ secrets.GH_PAT }}
