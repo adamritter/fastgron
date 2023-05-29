@@ -31,6 +31,8 @@ json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
 ```
 
+The file name can be - or missing, in that case the data is read from stdin.
+
 ## JSON lines (-s or --stream)
 
 ```fastgron testdata/stream.json -s
