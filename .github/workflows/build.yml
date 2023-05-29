@@ -1,0 +1,56 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up C++ environment
+        uses: aminya/setup-cpp@v0.28.0
+        with:
+          compiler-version: gcc-10
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --verbose
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: choco install -y mingw
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" ..
+          cmake --build . --verbose
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up C++ environment
+        uses: aminya/setup-cpp@v0.28.0
+        with:
+          compiler-version: llvm
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --verbose
