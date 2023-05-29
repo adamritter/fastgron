@@ -48,6 +48,9 @@ jobs:
         with:
           compiler-version: llvm
 
+      - name: Reset Xcode version
+        run: sudo xcode-select --reset
+
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_13.3.app
 
