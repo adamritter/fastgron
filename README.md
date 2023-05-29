@@ -8,6 +8,16 @@ It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files.
 Here is a basic usage example:
 
 ```bash
+> cat cat testdata/two.json
+{
+    "name": "Tom",
+    "github": "https://github.com/tomnomnom/",
+    "likes": ["code", "cheese", "meat"],
+    "contact": {
+        "email": "mail@tomnomnom.com",
+        "twitter": "@TomNomNom"
+    }
+}
 > fastgron testdata/two.json 
 json = {};
 json.name = "Tom";
