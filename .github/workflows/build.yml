@@ -43,22 +43,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up C++ environment
-        uses: aminya/setup-cpp@v0.28.0
-        with:
-          compiler-version: llvm
-
-      - name: Reset Xcode version
-        run: sudo xcode-select --reset
-
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_13.3.app
-
       - name: Build
         run: |
           mkdir build
           cd build
-          # Use cmake with brew llvm 15 c++ compiler
-
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build . --verbose

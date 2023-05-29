@@ -24,18 +24,16 @@ jobs:
           cmake ..
           cmake --build .
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - name: Rename binary
+        run: |
+          mv build/fastgron build/fastgron-ubuntu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            build/fastgron
-          tag_name: ${{ github.ref }}
-          body: |
-            ${{ github.event.release.body }}
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GH_PAT }}
+          name: fastgron-ubuntu
+          path: build/fastgron-ubuntu
 
   build-windows:
     runs-on: windows-latest
@@ -53,18 +51,12 @@ jobs:
           cmake -G "MinGW Makefiles" ..
           cmake --build .
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            build/fastgron.exe
-          tag_name: ${{ github.ref }}
-          body: |
-            ${{ github.event.release.body }}
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GH_PAT }}
+          name: fastgron-windows
+          path: build/fastgron.exe
 
   build-mac:
     runs-on: macos-latest
@@ -81,15 +73,36 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake ..
+          cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build .
+
+      - name: Rename binary
+        run: |
+          mv build/fastgron build/fastgron-mac
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: fastgron-mac
+          path: build/fastgron-mac
+
+  release:
+    needs: [build-linux, build-windows, build-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            build/fastgron
+            build/fastgron.exe
+            build/fastgron-ubuntu
+            build/fastgron-mac
+
           tag_name: ${{ github.ref }}
           body: |
             ${{ github.event.release.body }}
