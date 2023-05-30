@@ -1,11 +1,48 @@
 # fastgron
 
+Make JSON greppable super fast!
+
+fastgron transforms JSON into discrete assignments to make it easier to grep for what you want and see the absolute 'path' to it. It eases the exploration of APIs that return large blobs of JSON but have terrible documentation.
+
 `fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson and fast_io libraries.
 It's 40x faster than [gron](https://github.com/tomnomnom/gron) on big files, so it makes big JSON files greppable.
 
-## Usage
+```bash
+> fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep "commit.author"
+json[0].commit.author = {};
+json[0].commit.author.name = "adamritter";
+json[0].commit.author.email = "58403584+adamritter@users.noreply.github.com";
+json[0].commit.author.date = "2023-05-30T18:04:25Z";
+```
 
-Here is a basic usage example:
+fastgron can work backwards too, enabling you to turn your filtered data back into JSON:
+
+```bash
+fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep "commit.author" | fastgron --ungron
+[
+  {
+    "commit": {
+      "author": {
+        "date": "2023-05-30T18:11:03Z",
+        "email": "58403584+adamritter@users.noreply.github.com",
+        "name": "adamritter"
+      }
+    }
+  }
+]
+```
+
+## Quick Install
+
+MacOS, Linux:
+
+```bash
+brew install adamritter/homebrew-fastgron/fastgron
+```
+
+Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
+libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
+
 
 ```bash
 > cat testdata/two.json
@@ -111,17 +148,6 @@ gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 tota
 ```
 
 
-
-## Quick Install
-
-MacOS, Linux:
-
-```bash
-brew install adamritter/homebrew-fastgron/fastgron
-```
-
-Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
-libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
 ## Installation
 
