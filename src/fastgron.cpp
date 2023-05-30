@@ -628,7 +628,7 @@ void print_help()
                       "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
                       "  --sort sort output by key\n"
                       "  --user-agent   set user agent\n"
-                      "  -u, --ungron   ungron: convert gron output back to JSON (WARNING!!! extremely slow for large files)\n");
+                      "  -u, --ungron   ungron: convert gron output back to JSON\n");
 }
 
 void print_version()
