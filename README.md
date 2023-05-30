@@ -132,7 +132,7 @@ These features need to be implemented to be mostly compatible with gron (and add
 
 - Sort keys
 - Filter paths
-- Grep by regexp / case sensitive/insensitive / text
+- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
 - Ungron
 - HTTP support
 - HTTPS support
