@@ -33,7 +33,9 @@ FetchContent_MakeAvailable(fmt)
 find_package(CURL)
 
 # Tell compiler about CURL_FOUND
-target_compile_definitions(fastgron PRIVATE CURL_FOUND)
+if(CURL_FOUND)
+    target_compile_definitions(fastgron PRIVATE CURL_FOUND)
+endif()
 
 # Link dependencies
 target_link_libraries(fastgron PRIVATE dragonbox::dragonbox_to_chars fmt::fmt CURL::libcurl)
