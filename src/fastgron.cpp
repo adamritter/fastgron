@@ -166,10 +166,16 @@ options parse_options(int argc, char *argv[])
 }
 
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <vector>
 #include <iostream>
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+#include <unistd.h>
+#endif
 
 std::string readFileIntoString(int fd)
 {
