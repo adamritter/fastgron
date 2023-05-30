@@ -111,6 +111,7 @@ bool force_gprint = false;
 string filter;
 std::unique_ptr<std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>> searcher;
 bool ignore_case = false;
+bool sort_output = false;
 
 char fast_tolower(char c)
 {
@@ -121,7 +122,7 @@ char fast_tolower(char c)
     return c;
 }
 
-void gprint(string_view s)
+void gprint(string_view s, growing_string *out_growing_string)
 {
 
     if (!filter.empty())
@@ -147,18 +148,25 @@ void gprint(string_view s)
             }
         }
     }
+    if (out_growing_string)
+    {
+        // fast_io::io::print("out_growing_string.append at gprint: ", string(*out_growing_string), ":)))\n");
+        out_growing_string->append(s);
+        return;
+    }
     fast_io::io::print(s);
 }
 
-void recursive_print_gron(ondemand::value element, growing_string &path)
+void recursive_print_gron(ondemand::value element, growing_string &path, growing_string *out_growing_string)
 {
+    // fast_io::io::print("path: ", string(path), " out_growing_string is nullptr: ", out_growing_string == nullptr, "::)))\n");
     switch (element.type())
     {
     case ondemand::json_type::array:
     {
         size_t orig_base_len = path.size();
-        path.append("[];\n");
-        gprint(path);
+        path.append(" = [];\n");
+        gprint(path, out_growing_string);
         path.erase(orig_base_len);
         uint64_t index = 0;
         path.append("[");
@@ -169,7 +177,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
         {
             auto end = fast_itoa(out, index++);
             path.append(string_view(out, end - out)).append("]");
-            recursive_print_gron(child.value(), path);
+            recursive_print_gron(child.value(), path, out_growing_string);
             path.erase(base_len);
         }
         path.erase(orig_base_len);
@@ -179,25 +187,63 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     {
         size_t base_len = path.size();
         path.append(" = {};\n");
-        gprint(path);
+        gprint(path, out_growing_string);
         path.erase(base_len);
-
-        for (auto field : element.get_object())
+        // gprint("OBJECT************\n", out_growing_string);
+        if (sort_output)
         {
-            auto key = field.unescaped_key();
-            if (!is_js_identifier(key.value()))
+            // gprint("SORT**********\n", out_growing_string);
+            std::vector<std::pair<string, string>> fields;
+            growing_string out2;
+            for (auto field : element.get_object())
             {
-                path.append("[\"");
-                path.append(key.value());
-                path.append("\"]");
+                auto key = field.unescaped_key();
+                string key_str(key.value());
+                if (!is_js_identifier(key.value()))
+                {
+                    path.append("[\"");
+                    path.append(key.value());
+                    path.append("\"]");
+                }
+                else
+                {
+                    path.append(".");
+                    path.append(key.value());
+                }
+                recursive_print_gron(field.value(), path, &out2);
+                // fast_io::io::print("key0: ", key_str, " value: ", string(out2), ":)\n");
+                path.erase(base_len);
+                fields.emplace_back(key_str, string(out2));
+                out2.erase(0);
             }
-            else
+            std::sort(fields.begin(), fields.end(), [](auto &a, auto &b)
+                      { return a.first < b.first; });
+            for (auto &field : fields)
             {
-                path.append(".");
-                path.append(key.value());
+                // fast_io::io::print("key: ", field.first, " value: ", field.second, "::)\n");
+                gprint(field.second, out_growing_string);
             }
-            recursive_print_gron(field.value(), path);
-            path.erase(base_len);
+        }
+        else
+        {
+
+            for (auto field : element.get_object())
+            {
+                auto key = field.unescaped_key();
+                if (!is_js_identifier(key.value()))
+                {
+                    path.append("[\"");
+                    path.append(key.value());
+                    path.append("\"]");
+                }
+                else
+                {
+                    path.append(".");
+                    path.append(key.value());
+                }
+                recursive_print_gron(field.value(), path, out_growing_string);
+                path.erase(base_len);
+            }
         }
         break;
     }
@@ -225,7 +271,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
             *ptr++ = ';';
             *ptr++ = '\n';
             path.len = ptr - &path.data[0];
-            gprint(path);
+            gprint(path, out_growing_string);
             path.erase(base_len);
         }
         else
@@ -252,7 +298,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
             *ptr++ = ';';
             *ptr++ = '\n';
             path.len = ptr - &path.data[0];
-            gprint(path);
+            gprint(path, out_growing_string);
             path.erase(base_len);
         }
         else
@@ -279,7 +325,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
             memcpy(&path.data[base_len], " = false;\n", 11);
             path.len = base_len + 11;
         }
-        gprint(path);
+        gprint(path, out_growing_string);
         path.erase(base_len);
         break;
     }
@@ -289,7 +335,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
         {
             size_t base_len = path.size();
             path.append(" = null;\n");
-            gprint(path);
+            gprint(path, out_growing_string);
             path.erase(base_len);
         }
         break;
@@ -347,6 +393,16 @@ options parse_options(int argc, char *argv[])
                     filter.begin(), filter.end()));
             force_gprint = true;
         }
+        else if (strcmp(argv[i], "--sort") == 0)
+        {
+            sort_output = true;
+            force_gprint = true;
+        }
+        else if (strcmp(argv[i], "--no-sort") == 0)
+        {
+            sort_output = false;
+        }
+
         else
         {
             opts.filename = argv[i];
@@ -366,7 +422,8 @@ void print_help()
                       "  -V, --version  show version information and exit\n"
                       "  -s, --stream   enable stream mode\n"
                       "  -F, --fixed-string  PATTERN filter output by fixed string\n"
-                      "  -i, --ignore-case  ignore case distinctions in PATTERN\n");
+                      "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
+                      "  --sort sort output by key\n");
 }
 
 void print_version()
@@ -451,7 +508,7 @@ int main(int argc, char *argv[])
         for (auto doc : docs)
         {
             growing_string path = growing_string("json[").append(to_string(index++)).append("]");
-            recursive_print_gron(doc, path);
+            recursive_print_gron(doc, path, nullptr);
         }
     }
     // Execute as single document
@@ -460,7 +517,7 @@ int main(int argc, char *argv[])
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
         growing_string path = "json";
-        recursive_print_gron(val, path);
+        recursive_print_gron(val, path, nullptr);
     }
 
     return EXIT_SUCCESS;
