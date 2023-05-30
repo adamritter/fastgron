@@ -480,7 +480,7 @@ using Builder = std::variant<string_variant, struct Map, struct Vector>;
 
 struct Map
 {
-    std::map<string_variant, Builder> map;
+    std::map<string, Builder> map;
 };
 
 struct Vector
