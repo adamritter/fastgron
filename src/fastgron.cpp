@@ -357,6 +357,7 @@ struct options
 };
 
 string user_agent = "fastgron/0.3.x";
+bool no_indent = false;
 
 options parse_options(int argc, char *argv[])
 {
@@ -421,6 +422,10 @@ options parse_options(int argc, char *argv[])
             }
             user_agent = argv[++i];
         }
+        else if (strcmp(argv[i], "--no-indent") == 0)
+        {
+            no_indent = true;
+        }
         else
         {
             opts.filename = argv[i];
@@ -479,7 +484,10 @@ void print_json(Builder builder)
     if (std::holds_alternative<Vector>(builder))
     {
         fast_io::io::print("[\n");
-        indent.append("  ");
+        if (!no_indent)
+        {
+            indent.append("  ");
+        }
         bool first = true;
         for (auto &item : std::get<Vector>(builder).vector)
         {
@@ -491,14 +499,20 @@ void print_json(Builder builder)
             fast_io::io::print(indent.view());
             print_json(item);
         }
-        indent.erase(indent.size() - 2);
+        if (!no_indent)
+        {
+            indent.erase(indent.size() - 2);
+        }
         fast_io::io::print(indent.view(), "\n", indent.view(), "]");
         return;
     }
     if (std::holds_alternative<Map>(builder))
     {
         fast_io::io::print("{\n");
-        indent.append("  ");
+        if (!no_indent)
+        {
+            indent.append("  ");
+        }
         bool first = true;
         for (auto &item : std::get<Map>(builder).map)
         {
@@ -510,7 +524,10 @@ void print_json(Builder builder)
             fast_io::io::print(indent.view(), "\"", item.first, "\": ");
             print_json(item.second);
         }
-        indent.erase(indent.size() - 2);
+        if (!no_indent)
+        {
+            indent.erase(indent.size() - 2);
+        }
         fast_io::io::print("\n", indent.view(), "}");
         return;
     }
@@ -634,7 +651,8 @@ void print_help()
         "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
-        "  -u, --ungron   ungron: convert gron output back to JSON\n");
+        "  -u, --ungron   ungron: convert gron output back to JSON\n"
+        "  --no-indent   don't indent output\n");
 }
 
 void print_version()
