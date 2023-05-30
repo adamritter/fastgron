@@ -617,18 +617,23 @@ void parse_json(string_view line, Builder &builder)
 
 void print_help()
 {
-    fast_io::io::perr("Usage: fastgron [OPTIONS] [FILE]\n\n"
-                      "positional arguments:\n"
-                      "  FILE           file name (or '-' for standard input)\n\n"
-                      "options:\n"
-                      "  -h, --help     show this help message and exit\n"
-                      "  -V, --version  show version information and exit\n"
-                      "  -s, --stream   enable stream mode\n"
-                      "  -F, --fixed-string  PATTERN filter output by fixed string\n"
-                      "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
-                      "  --sort sort output by key\n"
-                      "  --user-agent   set user agent\n"
-                      "  -u, --ungron   ungron: convert gron output back to JSON\n");
+    fast_io::io::perr(
+#ifdef CURL_FOUND
+        "Usage: fastgron [OPTIONS] [FILE | URL]\n\n"
+#else
+        "Usage: fastgron [OPTIONS] [FILE]\n\n"
+#endif
+        "positional arguments:\n"
+        "  FILE           file name (or '-' for standard input)\n\n"
+        "options:\n"
+        "  -h, --help     show this help message and exit\n"
+        "  -V, --version  show version information and exit\n"
+        "  -s, --stream   enable stream mode\n"
+        "  -F, --fixed-string PATTERN  filter output by fixed string\n"
+        "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
+        "  --sort sort output by key\n"
+        "  --user-agent   set user agent\n"
+        "  -u, --ungron   ungron: convert gron output back to JSON\n");
 }
 
 void print_version()
