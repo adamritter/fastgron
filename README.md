@@ -161,9 +161,6 @@ Here are the steps to build, test, and install `fastgron`:
 
 ## TODO
 
-These features need to be implemented to be mostly compatible with gron (and add a few more features):
+Only color terminal support is missing from GRON
 
-- Filter paths
-- Ungron
-- Color terminal support
-- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
+Also adding filter paths is easy and can give a great user experience.
