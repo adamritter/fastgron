@@ -15,8 +15,6 @@ using namespace simdjson;
 using namespace std;
 
 string out;
-const string strue = "true";
-const string sfalse = "false";
 
 struct growing_string
 {
@@ -320,18 +318,14 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     }
     case ondemand::json_type::boolean:
     {
-
         size_t base_len = path.size();
-        path.reserve_extra(10);
         if (element.get_bool())
         {
-            memcpy(&path.data[base_len], " = true;\n", 10);
-            path.len = base_len + 10;
+            path.append(" = true;\n");
         }
         else
         {
-            memcpy(&path.data[base_len], " = false;\n", 11);
-            path.len = base_len + 11;
+            path.append(" = false;\n");
         }
         gprint(path, out_growing_string);
         path.erase(base_len);
