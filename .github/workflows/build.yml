@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: choco install -y mingw
 
+      - name: Install CURL
+        run: choco install -y curl
+
       - name: Build
         run: |
           mkdir build
