@@ -428,7 +428,7 @@ void print_help()
 
 void print_version()
 {
-    fast_io::io::perr("fastgron version 0.2.x\n");
+    fast_io::io::perr("fastgron version 0.3.x\n");
 }
 
 #include <fcntl.h>
