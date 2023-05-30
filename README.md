@@ -55,6 +55,10 @@ json[1].three[2] = 3;
 
 ## Speed (40x speedup compared to gron on 190MB file)
 
+While there's a 40x speedup for converting JSON to GRON, gron is not able to convert a 800MB file back to JSON.
+
+It takes 8s for fastgron to convert the 840MB file back to JSON.
+
 citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-json/blob/master/citylots.json
 
 ```
@@ -81,7 +85,16 @@ json.features[139041].properties.STREET = "UTAH";
 json.features[139489].properties.STREET = "UTAH";
 fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
 rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
+
+time fastgron -u citylots.gson > c2.json  
+fastgron -u citylots.gson > c2.json  7.32s user 0.95s system 97% cpu 8.502 total
+
+time gron -u citylots.gson > c3.json
+[2]    8270 killed     gron -u citylots.gson > c3.json
+gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 total
 ```
+
+
 
 ## Quick Install
 
