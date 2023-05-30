@@ -18,7 +18,7 @@ json[0].commit.author.date = "2023-05-30T18:04:25Z";
 fastgron can work backwards too, enabling you to turn your filtered data back into JSON:
 
 ```bash
-fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep "commit.author" | fastgron --ungron
+> fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep "commit.author" | fastgron --ungron
 [
   {
     "commit": {
