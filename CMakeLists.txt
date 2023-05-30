@@ -14,10 +14,24 @@ add_executable(fastgron
     src/fastgron.cpp
     extern/simdjson/simdjson.cpp
 )
-target_include_directories(fastgron PRIVATE extern/simdjson extern/fast_io)
+target_include_directories(fastgron PRIVATE extern/simdjson extern/fast_io extern/absl)
+
+include(FetchContent)
+FetchContent_Declare(
+    dragonbox
+    GIT_REPOSITORY https://github.com/jk-jeon/dragonbox
+)
+FetchContent_MakeAvailable(dragonbox)
+
+# fmt
+FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt
+)
+FetchContent_MakeAvailable(fmt)
 
 # Link dependencies
-target_link_libraries(fastgron PRIVATE)
+target_link_libraries(fastgron PRIVATE dragonbox::dragonbox_to_chars fmt::fmt)
 
 install(TARGETS fastgron
     RUNTIME DESTINATION bin) # for executables
