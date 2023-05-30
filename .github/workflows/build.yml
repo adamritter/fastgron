@@ -32,7 +32,9 @@ jobs:
         run: choco install -y mingw
 
       - name: Install CURL
-        run: choco install -y curl
+        run: |
+          choco install -y curl
+          vcpkg install curl
 
       - name: Build
         run: |
