@@ -43,7 +43,6 @@ brew install adamritter/homebrew-fastgron/fastgron
 Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
 libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
-
 ## Usage
 
 ```bash
@@ -84,6 +83,7 @@ options:
   --sort sort output by key
   --user-agent   set user agent
   -u, --ungron   ungron: convert gron output back to JSON
+  --no-indent   don't indent output\n");
 ```
 
 The file name can be - or missing, in that case the data is read from stdin.
@@ -141,15 +141,13 @@ json.features[139489].properties.STREET = "UTAH";
 fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
 rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
 
-time fastgron -u citylots.gson > c2.json  
+time fastgron -u citylots.gson > c2.json
 fastgron -u citylots.gson > c2.json  7.32s user 0.95s system 97% cpu 8.502 total
 
 time gron -u citylots.gson > c3.json
 [2]    8270 killed     gron -u citylots.gson > c3.json
 gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 total
 ```
-
-
 
 ## Installation
 
