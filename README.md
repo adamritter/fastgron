@@ -162,6 +162,6 @@ Here are the steps to build, test, and install `fastgron`:
 
 ## TODO
 
-Only color terminal support is missing from GRON
-
-Also adding filter paths is easy and can give a great user experience.
+- Only color terminal support is missing from GRON
+- Also adding filter paths is easy and can give a great user experience.
+- Make ungron even faster by remembering keys in the last path
