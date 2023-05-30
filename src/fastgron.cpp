@@ -152,9 +152,8 @@ char fast_tolower(char c)
     return c;
 }
 
-void gprint(string_view s, growing_string *out_growing_string)
+bool can_show(string_view s)
 {
-
     if (!filter.empty())
     {
         if (ignore_case)
@@ -167,17 +166,27 @@ void gprint(string_view s, growing_string *out_growing_string)
                 { return fast_tolower(ch1) == (ch2); });
             if (it == s.end())
             {
-                return;
+                return false;
             }
         }
         else
         {
             if (s.find(filter) == string_view::npos)
             {
-                return;
+                return false;
             }
         }
     }
+    return true;
+}
+
+void gprint(string_view s, growing_string *out_growing_string)
+{
+    if (!can_show(s))
+    {
+        return;
+    }
+
     if (out_growing_string)
     {
         // fast_io::io::print("out_growing_string.append at gprint: ", string(*out_growing_string), ":)))\n");
@@ -539,6 +548,12 @@ void print_json(Builder builder)
 {
     if (std::holds_alternative<string_variant>(builder))
     {
+        string_variant &s = std::get<string_variant>(builder);
+        if (s.empty())
+        {
+            batched_print("null");
+            return;
+        }
         batched_print(std::get<string_variant>(builder));
     }
     else if (std::holds_alternative<Vector>(builder))
@@ -816,6 +831,11 @@ int main(int argc, char *argv[])
                 end++;
             }
             string_view line = string_view(data, end - data);
+            if (!can_show(line))
+            {
+                data = end + 1;
+                continue;
+            }
             if (line.starts_with("json"))
             {
                 data = data + 4;
