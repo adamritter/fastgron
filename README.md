@@ -121,6 +121,7 @@ brew install adamritter/homebrew-fastgron/fastgron
 ```
 
 Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
+libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
 ## Installation
 
