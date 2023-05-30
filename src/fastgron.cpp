@@ -2,6 +2,7 @@
 #include <fast_io.h>
 #include <dragonbox/dragonbox_to_chars.h>
 #include <fmt/core.h>
+#include <functional>
 using namespace simdjson;
 using namespace std;
 
@@ -24,7 +25,7 @@ struct growing_string
     }
     string_view view() const
     {
-        return string_view(data.data(), len);
+        return std::string_view(data.data(), len);
     }
 
     growing_string &append(string_view s)
@@ -48,6 +49,10 @@ struct growing_string
     size_t size() const
     {
         return len;
+    }
+    operator string_view() const
+    {
+        return {data.data(), len};
     }
 };
 
@@ -102,15 +107,33 @@ inline int raw_json_string_length(const ondemand::raw_json_string &str)
     }
 }
 
+bool force_gprint = false;
+string filter;
+std::unique_ptr<std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>> searcher;
+
+void gprint(string_view s)
+{
+    if (!filter.empty())
+    {
+        if (s.find(filter) == string_view::npos)
+        {
+            return;
+        }
+    }
+    fast_io::io::print(s);
+}
+
 void recursive_print_gron(ondemand::value element, growing_string &path)
 {
     switch (element.type())
     {
     case ondemand::json_type::array:
     {
-        fast_io::io::print(path.view(), " = [];\n");
-        uint64_t index = 0;
         size_t orig_base_len = path.size();
+        path.append("[];\n");
+        gprint(path);
+        path.erase(orig_base_len);
+        uint64_t index = 0;
         path.append("[");
         size_t base_len = path.size();
         char out[100];
@@ -127,9 +150,11 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     }
     case ondemand::json_type::object:
     {
-        fast_io::io::print(path.view(), " = {};\n");
-
         size_t base_len = path.size();
+        path.append(" = {};\n");
+        gprint(path);
+        path.erase(base_len);
+
         for (auto field : element.get_object())
         {
             auto key = field.unescaped_key();
@@ -151,10 +176,8 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     }
     case ondemand::json_type::number:
     {
-        bool use_dragonbox = false;
-        if (use_dragonbox)
+        if (force_gprint)
         {
-
             int base_len = path.size();
             path.reserve_extra(jkj::dragonbox::max_output_string_length<jkj::dragonbox::ieee754_binary64> + 10);
             char *ptr = &path.data[base_len];
@@ -175,7 +198,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
             *ptr++ = ';';
             *ptr++ = '\n';
             path.len = ptr - &path.data[0];
-            fast_io::io::print(path.view());
+            gprint(path);
             path.erase(base_len);
         }
         else
@@ -186,8 +209,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     }
     case ondemand::json_type::string:
     {
-        bool create_string_first = false;
-        if (create_string_first)
+        if (force_gprint)
         {
             size_t base_len = path.size();
             int raw_json_string_len = raw_json_string_length(element.get_raw_json_string());
@@ -203,7 +225,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
             *ptr++ = ';';
             *ptr++ = '\n';
             path.len = ptr - &path.data[0];
-            fast_io::io::print(path.view());
+            gprint(path);
             path.erase(base_len);
         }
         else
@@ -217,16 +239,31 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     }
     case ondemand::json_type::boolean:
     {
-        fast_io::io::print(
-            path.view(), " = ",
-            element.get_bool() ? strue : sfalse, ";\n");
+
+        size_t base_len = path.size();
+        path.reserve_extra(10);
+        if (element.get_bool())
+        {
+            memcpy(&path.data[base_len], " = true;\n", 10);
+            path.len = base_len + 10;
+        }
+        else
+        {
+            memcpy(&path.data[base_len], " = false;\n", 11);
+            path.len = base_len + 11;
+        }
+        gprint(path);
+        path.erase(base_len);
         break;
     }
     case ondemand::json_type::null:
     {
         if (element.is_null())
         {
-            fast_io::io::print(path.view(), " = null;\n");
+            size_t base_len = path.size();
+            path.append(" = null;\n");
+            gprint(path);
+            path.erase(base_len);
         }
         break;
     }
@@ -266,6 +303,19 @@ options parse_options(int argc, char *argv[])
             opts.version = true;
             break; // No need to process further arguments
         }
+        else if (strcmp(argv[i], "-F") == 0 || strcmp(argv[i], "--fixed-string") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                fast_io::io::perr("Missing argument for -F\n");
+                exit(EXIT_FAILURE);
+            }
+            filter = argv[++i];
+            searcher.reset(
+                new std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>(
+                    filter.begin(), filter.end()));
+            force_gprint = true;
+        }
         else
         {
             opts.filename = argv[i];
@@ -283,7 +333,8 @@ void print_help()
                       "options:\n"
                       "  -h, --help     show this help message and exit\n"
                       "  -V, --version  show version information and exit\n"
-                      "  -s, --stream   enable stream mode\n");
+                      "  -s, --stream   enable stream mode\n"
+                      "  -F, --fixed-string  filter output by fixed string\n");
 }
 
 void print_version()
