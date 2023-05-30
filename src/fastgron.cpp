@@ -454,83 +454,86 @@ growing_string indent = "";
 
 void print_json(Builder builder)
 {
-    if (std::holds_alternative<std::nullptr_t>(builder))
-    {
-        fast_io::io::print("null");
-        return;
-    }
-    if (std::holds_alternative<bool>(builder))
-    {
-        if (std::get<bool>(builder))
+    // visit
+    std::visit(
+        [](auto &&arg)
         {
-            fast_io::io::print("true");
-        }
-        else
-        {
-            fast_io::io::print("false");
-        }
-        return;
-    }
-    if (std::holds_alternative<double>(builder))
-    {
-        fast_io::io::print(std::get<double>(builder));
-        return;
-    }
-    if (std::holds_alternative<string>(builder))
-    {
-        fast_io::io::print("\"", std::get<string>(builder), "\"");
-        return;
-    }
-    if (std::holds_alternative<Vector>(builder))
-    {
-        fast_io::io::print("[\n");
-        if (!no_indent)
-        {
-            indent.append("  ");
-        }
-        bool first = true;
-        for (auto &item : std::get<Vector>(builder).vector)
-        {
-            if (!first)
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::monostate>)
             {
-                fast_io::io::print(", ");
+                fast_io::io::print("null");
             }
-            first = false;
-            fast_io::io::print(indent.view());
-            print_json(item);
-        }
-        if (!no_indent)
-        {
-            indent.erase(indent.size() - 2);
-        }
-        fast_io::io::print(indent.view(), "\n", indent.view(), "]");
-        return;
-    }
-    if (std::holds_alternative<Map>(builder))
-    {
-        fast_io::io::print("{\n");
-        if (!no_indent)
-        {
-            indent.append("  ");
-        }
-        bool first = true;
-        for (auto &item : std::get<Map>(builder).map)
-        {
-            if (!first)
+            else if constexpr (std::is_same_v<T, bool>)
             {
-                fast_io::io::print(",\n");
+                if (arg)
+                {
+                    fast_io::io::print("true");
+                }
+                else
+                {
+                    fast_io::io::print("false");
+                }
             }
-            first = false;
-            fast_io::io::print(indent.view(), "\"", item.first, "\": ");
-            print_json(item.second);
-        }
-        if (!no_indent)
-        {
-            indent.erase(indent.size() - 2);
-        }
-        fast_io::io::print("\n", indent.view(), "}");
-        return;
-    }
+            else if constexpr (std::is_same_v<T, double>)
+            {
+                fast_io::io::print(arg);
+            }
+            else if constexpr (std::is_same_v<T, string>)
+            {
+                fast_io::io::print("\"", arg, "\"");
+            }
+            else if constexpr (std::is_same_v<T, Vector>)
+            {
+                fast_io::io::print("[\n");
+                if (!no_indent)
+                {
+                    indent.append("  ");
+                }
+                bool first = true;
+                Vector &vector_holder = arg;
+                for (auto &item : vector_holder.vector)
+                {
+                    if (!first)
+                    {
+                        fast_io::io::print(",\n");
+                    }
+                    first = false;
+                    fast_io::io::print(indent.view());
+                    print_json(item);
+                }
+                if (!no_indent)
+                {
+                    indent.erase(indent.size() - 2);
+                }
+                fast_io::io::print(indent.view(), "\n", indent.view(), "]");
+            }
+            else if constexpr (std::is_same_v<T, Map>)
+            {
+                fast_io::io::print("{\n");
+                if (!no_indent)
+                {
+                    indent.append("  ");
+                }
+                bool first = true;
+                Map &map_holder = arg;
+                for (auto &item : map_holder.map)
+                {
+                    if (!first)
+                    {
+                        fast_io::io::print(",\n");
+                    }
+                    first = false;
+                    fast_io::io::print(indent.view(), "\"", item.first, "\": ");
+                    print_json(item.second);
+                }
+                if (!no_indent)
+                {
+                    indent.erase(indent.size() - 2);
+                }
+                fast_io::io::print("\n", indent.view(), "}");
+            }
+        },
+        builder);
 }
 // Parse .hello[3]["asdf"] = 3.14; into builder
 void parse_json(string_view line, Builder &builder)
@@ -657,6 +660,7 @@ void print_help()
 
 void print_version()
 {
+
     fast_io::io::perr("fastgron version 0.3.x\n");
 }
 
