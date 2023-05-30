@@ -445,6 +445,8 @@ struct Vector
     std::vector<Builder> vector;
 };
 
+growing_string indent = "";
+
 void print_json(Builder builder)
 {
     if (std::holds_alternative<std::nullptr_t>(builder))
@@ -476,7 +478,8 @@ void print_json(Builder builder)
     }
     if (std::holds_alternative<Vector>(builder))
     {
-        fast_io::io::print("[");
+        fast_io::io::print("[\n");
+        indent.append("  ");
         bool first = true;
         for (auto &item : std::get<Vector>(builder).vector)
         {
@@ -485,14 +488,17 @@ void print_json(Builder builder)
                 fast_io::io::print(", ");
             }
             first = false;
+            fast_io::io::print(indent.view());
             print_json(item);
         }
-        fast_io::io::print("\n]");
+        indent.erase(indent.size() - 2);
+        fast_io::io::print(indent.view(), "\n", indent.view(), "]");
         return;
     }
     if (std::holds_alternative<Map>(builder))
     {
         fast_io::io::print("{\n");
+        indent.append("  ");
         bool first = true;
         for (auto &item : std::get<Map>(builder).map)
         {
@@ -501,10 +507,11 @@ void print_json(Builder builder)
                 fast_io::io::print(",\n");
             }
             first = false;
-            fast_io::io::print("\"", item.first, "\": ");
+            fast_io::io::print(indent.view(), "\"", item.first, "\": ");
             print_json(item.second);
         }
-        fast_io::io::print("\n}");
+        indent.erase(indent.size() - 2);
+        fast_io::io::print("\n", indent.view(), "}");
         return;
     }
 }
