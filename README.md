@@ -133,10 +133,9 @@ Here are the steps to build, test, and install `fastgron`:
 
 These features need to be implemented to be mostly compatible with gron (and add a few more features):
 
-- Sort keys
 - Filter paths
-- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
 - Ungron
 - HTTP support
 - HTTPS support
 - Color terminal support
+- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
