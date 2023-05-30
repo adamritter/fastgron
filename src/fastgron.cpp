@@ -186,10 +186,33 @@ void recursive_print_gron(ondemand::value element, growing_string &path)
     }
     case ondemand::json_type::string:
     {
-        fast_io::io::print(path.view(), " = \"",
-                           string_view(element.get_raw_json_string().raw(),
-                                       raw_json_string_length(element.get_raw_json_string())),
-                           "\";\n");
+        bool create_string_first = false;
+        if (create_string_first)
+        {
+            size_t base_len = path.size();
+            int raw_json_string_len = raw_json_string_length(element.get_raw_json_string());
+            path.reserve_extra(raw_json_string_len + 20);
+            char *ptr = &path.data[base_len];
+            *ptr++ = ' ';
+            *ptr++ = '=';
+            *ptr++ = ' ';
+            *ptr++ = '"';
+            memcpy(ptr, element.get_raw_json_string().raw(), raw_json_string_len);
+            ptr += raw_json_string_len;
+            *ptr++ = '"';
+            *ptr++ = ';';
+            *ptr++ = '\n';
+            path.len = ptr - &path.data[0];
+            fast_io::io::print(path.view());
+            path.erase(base_len);
+        }
+        else
+        {
+            fast_io::io::print(path.view(), " = \"",
+                               string_view(element.get_raw_json_string().raw(),
+                                           raw_json_string_length(element.get_raw_json_string())),
+                               "\";\n");
+        }
         break;
     }
     case ondemand::json_type::boolean:
