@@ -53,7 +53,7 @@ json[1].three[1] = 2;
 json[1].three[2] = 3;
 ```
 
-## Speed (40x speedup compared to gron --no-sort on 190MB file)
+## Speed (40x speedup compared to gron on 190MB file)
 
 citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-json/blob/master/citylots.json
 
