@@ -99,6 +99,7 @@ To build and run this project, you need:
 
 - A C++20 compatible compiler
 - [CMake](https://cmake.org/) (version 3.8 or higher)
+- libcurl installed (Optional)
 
 ## Building and Installation
 
