@@ -64,6 +64,9 @@ time fastgron ~/Downloads/citylots.json > /dev/null
 time gron --no-sort ~/Downloads/citylots.json  >/dev/null
 gron --no-sort ~/Downloads/citylots.json > /dev/null  30.12s user 36.74s system 161% cpu 41.501 total
 
+time fastgron --sort ~/Downloads/citylots.json > /dev/null
+fastgron --sort ~/Downloads/citylots.json > /dev/null  1.55s user 0.48s system 87% cpu 2.322 total
+
 time gron ~/Downloads/citylots.json > /dev/null
 gron ~/Downloads/citylots.json > /dev/null 52.34s user 48.46s system 117% cpu 1:25.80 total
 
