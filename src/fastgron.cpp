@@ -62,6 +62,43 @@ struct growing_string
     }
 };
 
+growing_string batched_out;
+
+void batched_print_flush()
+{
+    fast_io::io::print(batched_out.view());
+    batched_out.erase(0);
+}
+
+void batched_print(string_view s)
+{
+    batched_out.append(s);
+    if (batched_out.size() > 1000000)
+    {
+        batched_print_flush();
+    }
+}
+
+void batched_print(char c)
+{
+    batched_out.append(c);
+    if (batched_out.size() > 1000000)
+    {
+        batched_print_flush();
+    }
+}
+
+void batched_print(double d)
+{
+    batched_out.reserve_extra(100);
+    char *ptr2 = fmt::format_to(batched_out.data.data() + batched_out.len, "{}", d);
+    batched_out.len = ptr2 - batched_out.data.data();
+    if (batched_out.size() > 1000000)
+    {
+        batched_print_flush();
+    }
+}
+
 bool is_js_identifier(string_view s)
 {
     if (s.empty())
@@ -437,12 +474,13 @@ options parse_options(int argc, char *argv[])
 #include <variant>
 #include <map>
 
-using Builder = std::variant<std::monostate, struct Map, struct Vector,
-                             string, double, bool, std::nullptr_t>;
+// string_view is a bit faster, but needs to hold original document in memory.
+#define string_variant string_view
+using Builder = std::variant<string_variant, struct Map, struct Vector>;
 
 struct Map
 {
-    std::map<string, Builder> map;
+    std::map<string_variant, Builder> map;
 };
 
 struct Vector
@@ -451,89 +489,78 @@ struct Vector
 };
 
 growing_string indent = "";
+void print_json(Builder builder);
+void print_vector(Vector &vector_holder)
+{
+    batched_print("[\n");
+    if (!no_indent)
+    {
+        indent.append("  ");
+    }
+    bool first = true;
+    for (auto &item : vector_holder.vector)
+    {
+        if (!first)
+        {
+            batched_print(",\n");
+        }
+        first = false;
+        batched_print(indent.view());
+        print_json(item);
+    }
+    if (!no_indent)
+    {
+        indent.erase(indent.size() - 2);
+    }
+    batched_print("\n");
+    batched_print(indent.view());
+    batched_print("]");
+}
+
+void print_map(Map &map_holder)
+{
+    batched_print("{\n");
+    if (!no_indent)
+    {
+        indent.append("  ");
+    }
+    bool first = true;
+    for (auto &item : map_holder.map)
+    {
+        if (!first)
+        {
+            batched_print(",\n");
+        }
+        first = false;
+        batched_print(indent.view());
+        batched_print('"');
+        batched_print(item.first);
+        batched_print("\": ");
+        print_json(item.second);
+    }
+    if (!no_indent)
+    {
+        indent.erase(indent.size() - 2);
+    }
+    batched_print("\n");
+    batched_print(indent.view());
+    batched_print("}");
+}
 
 void print_json(Builder builder)
 {
-    // visit
-    std::visit(
-        [](auto &&arg)
-        {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, std::monostate>)
-            {
-                fast_io::io::print("null");
-            }
-            else if constexpr (std::is_same_v<T, bool>)
-            {
-                if (arg)
-                {
-                    fast_io::io::print("true");
-                }
-                else
-                {
-                    fast_io::io::print("false");
-                }
-            }
-            else if constexpr (std::is_same_v<T, double>)
-            {
-                fast_io::io::print(arg);
-            }
-            else if constexpr (std::is_same_v<T, string>)
-            {
-                fast_io::io::print("\"", arg, "\"");
-            }
-            else if constexpr (std::is_same_v<T, Vector>)
-            {
-                fast_io::io::print("[\n");
-                if (!no_indent)
-                {
-                    indent.append("  ");
-                }
-                bool first = true;
-                Vector &vector_holder = arg;
-                for (auto &item : vector_holder.vector)
-                {
-                    if (!first)
-                    {
-                        fast_io::io::print(",\n");
-                    }
-                    first = false;
-                    fast_io::io::print(indent.view());
-                    print_json(item);
-                }
-                if (!no_indent)
-                {
-                    indent.erase(indent.size() - 2);
-                }
-                fast_io::io::print("\n", indent.view(), "]");
-            }
-            else if constexpr (std::is_same_v<T, Map>)
-            {
-                fast_io::io::print("{\n");
-                if (!no_indent)
-                {
-                    indent.append("  ");
-                }
-                bool first = true;
-                Map &map_holder = arg;
-                for (auto &item : map_holder.map)
-                {
-                    if (!first)
-                    {
-                        fast_io::io::print(",\n");
-                    }
-                    first = false;
-                    fast_io::io::print(indent.view(), "\"", item.first, "\": ");
-                    print_json(item.second);
-                }
-                if (!no_indent)
-                {
-                    indent.erase(indent.size() - 2);
-                }
-                fast_io::io::print("\n", indent.view(), "}");
-            }
-        },
-        builder);
+    if (std::holds_alternative<string_variant>(builder))
+    {
+        batched_print(std::get<string_variant>(builder));
+    }
+    else if (std::holds_alternative<Vector>(builder))
+    {
+        print_vector(std::get<Vector>(builder));
+    }
+    else if (std::holds_alternative<Map>(builder))
+    {
+        print_map(std::get<Map>(builder));
+    }
 }
 // Parse .hello[3]["asdf"] = 3.14; into builder
 void parse_json(string_view line, Builder &builder)
@@ -544,7 +571,7 @@ void parse_json(string_view line, Builder &builder)
     }
     if (line[0] == '.')
     {
-        if (std::holds_alternative<std::monostate>(builder))
+        if (std::holds_alternative<string_variant>(builder))
         {
             builder.emplace<Map>();
         }
@@ -560,13 +587,13 @@ void parse_json(string_view line, Builder &builder)
         auto child = map_alt.find(key);
         if (child == map_alt.end())
         {
-            child = map_alt.emplace(key, std::monostate()).first;
+            child = map_alt.emplace(key, string_variant()).first;
         }
         parse_json(line.substr(end), child->second);
     }
     else if (line[0] == '[' && isdigit(line[1]))
     {
-        if (std::holds_alternative<std::monostate>(builder))
+        if (std::holds_alternative<string_variant>(builder))
         {
             builder.emplace<Vector>();
         }
@@ -599,28 +626,8 @@ void parse_json(string_view line, Builder &builder)
         {
             end--;
         }
-        string value(line.substr(start, end - start));
-        if (value == "true")
-        {
-            builder.emplace<bool>(true);
-        }
-        else if (value == "false")
-        {
-            builder.emplace<bool>(false);
-        }
-        else if (value == "null")
-        {
-            builder.emplace<std::nullptr_t>(nullptr);
-        }
-        else if (value[0] == '-' || isdigit(value[0]))
-        {
-            builder.emplace<double>(stod(value));
-        }
-        else if (value[0] == '"')
-        {
-            builder.emplace<string>(value.substr(1, value.size() - 2));
-        }
-        else if (value == "[]")
+        string_view value(line.substr(start, end - start));
+        if (value == "[]")
         {
             builder.emplace<Vector>();
         }
@@ -630,8 +637,7 @@ void parse_json(string_view line, Builder &builder)
         }
         else
         {
-            fast_io::io::perr("Invalid value: ", value, "\n");
-            exit(EXIT_FAILURE);
+            builder.emplace<string_variant>(value);
         }
     }
 }
@@ -829,13 +835,15 @@ int main(int argc, char *argv[])
             parse_json(string_view(data, end - data), builder);
             data = end + 1;
         }
-        if (std::holds_alternative<std::monostate>(builder))
+        if (std::holds_alternative<string_variant>(builder) && std::get<string_variant>(builder) == "")
         {
             fast_io::io::perr("Builder is not assigned\n");
             return EXIT_FAILURE;
         }
+        batched_out.reserve_extra(1000000);
         print_json(builder);
-        fast_io::io::print("\n");
+        batched_print("\n");
+        batched_print_flush();
 
         return EXIT_SUCCESS;
     }

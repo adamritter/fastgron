@@ -142,7 +142,7 @@ fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
 rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
 
 time fastgron -u citylots.gson > c2.json
-fastgron -u citylots.gson > c2.json  7.32s user 0.95s system 97% cpu 8.502 total
+fastgron -u citylots.gson > c2.json  5.37s user 0.63s system 96% cpu 6.231 total
 
 time gron -u citylots.gson > c3.json
 [2]    8270 killed     gron -u citylots.gson > c3.json
