@@ -44,6 +44,8 @@ Windows: Download from [release](https://github.com/adamritter/fastgron/releases
 libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
 
+## Usage
+
 ```bash
 > cat testdata/two.json
 {
