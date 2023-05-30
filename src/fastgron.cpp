@@ -3,7 +3,13 @@
 #include <dragonbox/dragonbox_to_chars.h>
 #include <fmt/core.h>
 #include <functional>
+
+#ifdef CURL_FOUND
 #include <curl/curl.h>
+bool curl_found = true;
+#else
+bool curl_found = false;
+#endif
 
 using namespace simdjson;
 using namespace std;
@@ -516,6 +522,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string2 *s)
 
 std::string download(std::string url)
 {
+#ifdef CURL_FOUND
     CURL *curl;
     CURLcode res;
 
@@ -545,6 +552,10 @@ std::string download(std::string url)
         curl_easy_cleanup(curl);
     }
     return r;
+#else
+    fast_io::io::perr("CURL wasn't compiled in fastgron\n");
+    exit(EXIT_FAILURE);
+#endif
 }
 
 int main(int argc, char *argv[])
@@ -577,7 +588,7 @@ int main(int argc, char *argv[])
         // Load string from stdin
         json = padded_string(readFileIntoString(0));
     }
-    else if (opts.filename.compare(0, 7, "http://") == 0 || opts.filename.compare(0, 8, "https://") == 0)
+    else if (curl_found && opts.filename.compare(0, 7, "http://") == 0 || opts.filename.compare(0, 8, "https://") == 0)
     {
         json = padded_string(download(opts.filename));
     }

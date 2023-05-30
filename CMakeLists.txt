@@ -30,11 +30,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
-# Use libcurl
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
-    CACHE STRING "Vcpkg toolchain file")
+find_package(CURL)
 
-find_package(CURL REQUIRED)
+# Tell compiler about CURL_FOUND
+target_compile_definitions(fastgron PRIVATE CURL_FOUND)
 
 # Link dependencies
 target_link_libraries(fastgron PRIVATE dragonbox::dragonbox_to_chars fmt::fmt CURL::libcurl)
