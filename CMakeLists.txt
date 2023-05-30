@@ -30,8 +30,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
+# Use libcurl
+find_package(CURL REQUIRED)
+
 # Link dependencies
-target_link_libraries(fastgron PRIVATE dragonbox::dragonbox_to_chars fmt::fmt)
+target_link_libraries(fastgron PRIVATE dragonbox::dragonbox_to_chars fmt::fmt CURL::libcurl)
 
 install(TARGETS fastgron
     RUNTIME DESTINATION bin) # for executables

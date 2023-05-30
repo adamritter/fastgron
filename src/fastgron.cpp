@@ -3,6 +3,8 @@
 #include <dragonbox/dragonbox_to_chars.h>
 #include <fmt/core.h>
 #include <functional>
+#include <curl/curl.h>
+
 using namespace simdjson;
 using namespace std;
 
@@ -353,6 +355,8 @@ struct options
     bool version;
 };
 
+string user_agent = "fastgron/0.3.x";
+
 options parse_options(int argc, char *argv[])
 {
     options opts;
@@ -402,7 +406,15 @@ options parse_options(int argc, char *argv[])
         {
             sort_output = false;
         }
-
+        else if (strcmp(argv[i], "--user-agent") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                fast_io::io::perr("Missing argument for --user-agent\n");
+                exit(EXIT_FAILURE);
+            }
+            user_agent = argv[++i];
+        }
         else
         {
             opts.filename = argv[i];
@@ -423,7 +435,8 @@ void print_help()
                       "  -s, --stream   enable stream mode\n"
                       "  -F, --fixed-string  PATTERN filter output by fixed string\n"
                       "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
-                      "  --sort sort output by key\n");
+                      "  --sort sort output by key\n"
+                      "  --user-agent   set user agent\n");
 }
 
 void print_version()
@@ -464,6 +477,76 @@ std::string readFileIntoString(int fd)
     return content;
 }
 
+// Set up CURL
+
+struct string2
+{
+    char *ptr;
+    size_t len;
+};
+
+void init_string(struct string2 *s)
+{
+    s->len = 0;
+    s->ptr = (char *)malloc(s->len + 1);
+    if (s->ptr == NULL)
+    {
+        fprintf(stderr, "malloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    s->ptr[0] = '\0';
+}
+
+size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string2 *s)
+{
+    fast_io::io::perr("writefunc: ", size, ", ", nmemb, "\n");
+    size_t new_len = s->len + size * nmemb;
+    s->ptr = (char *)realloc(s->ptr, new_len + 1);
+    if (s->ptr == NULL)
+    {
+        fprintf(stderr, "realloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(s->ptr + s->len, ptr, size * nmemb);
+    s->ptr[new_len] = '\0';
+    s->len = new_len;
+
+    return size * nmemb;
+}
+
+std::string download(std::string url)
+{
+    CURL *curl;
+    CURLcode res;
+
+    curl = curl_easy_init();
+    string r;
+    if (curl)
+    {
+        struct string2 s;
+        init_string(&s);
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.c_str());
+        res = curl_easy_perform(curl);
+
+        r = string_view(s.ptr, s.len);
+        if (res != CURLE_OK)
+        {
+            const char *curl_err_msg = curl_easy_strerror(res);
+            fast_io::io::perr("Error when downloading data: ", string(curl_err_msg), "\n");
+            exit(EXIT_FAILURE);
+        }
+        free(s.ptr);
+
+        /* always cleanup */
+        curl_easy_cleanup(curl);
+    }
+    return r;
+}
+
 int main(int argc, char *argv[])
 {
     ondemand::parser parser;
@@ -493,6 +576,10 @@ int main(int argc, char *argv[])
     {
         // Load string from stdin
         json = padded_string(readFileIntoString(0));
+    }
+    else if (opts.filename.compare(0, 7, "http://") == 0 || opts.filename.compare(0, 8, "https://") == 0)
+    {
+        json = padded_string(download(opts.filename));
     }
     else
     {
