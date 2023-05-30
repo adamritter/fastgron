@@ -387,6 +387,11 @@ options parse_options(int argc, char *argv[])
     opts.version = false;
     opts.ungron = false;
 
+    if (argc == 1 && isatty(0))
+    {
+        opts.help = true;
+    }
+
     for (int i = 1; i < argc; ++i)
     {
         if (strcmp(argv[i], "--stream") == 0 || strcmp(argv[i], "-s") == 0)
