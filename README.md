@@ -29,6 +29,22 @@ json.likes[2] = "meat";
 json.contact = {};
 json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
+
+> fastgron --help
+Usage: fastgron [OPTIONS] [FILE]
+
+positional arguments:
+  FILE           file name (or '-' for standard input)
+
+options:
+  -h, --help     show this help message and exit
+  -V, --version  show version information and exit
+  -s, --stream   enable stream mode
+  -F, --fixed-string  PATTERN filter output by fixed string
+  -i, --ignore-case  ignore case distinctions in PATTERN
+  --sort sort output by key
+  --user-agent   set user agent
+  -u, --ungron   ungron: convert gron output back to JSON
 ```
 
 The file name can be - or missing, in that case the data is read from stdin.
