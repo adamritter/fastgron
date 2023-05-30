@@ -128,11 +128,11 @@ Here are the steps to build, test, and install `fastgron`:
 
 ## TODO
 
-These features need to be implemented to be compatible with gron (and add a few more features):
+These features need to be implemented to be mostly compatible with gron (and add a few more features):
 
 - Sort keys
 - Filter paths
-- Grep by regexp / case sensitive/insernsitive / text
+- Grep by regexp / case sensitive/insensitive / text
 - Ungron
 - HTTP support
 - HTTPS support
