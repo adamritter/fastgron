@@ -359,6 +359,7 @@ struct options
     bool stream;
     bool help;
     bool version;
+    bool ungron;
 };
 
 string user_agent = "fastgron/0.3.x";
@@ -369,6 +370,7 @@ options parse_options(int argc, char *argv[])
     opts.stream = false;
     opts.help = false;
     opts.version = false;
+    opts.ungron = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -389,6 +391,10 @@ options parse_options(int argc, char *argv[])
         else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
         {
             ignore_case = true;
+        }
+        else if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--ungron") == 0)
+        {
+            opts.ungron = true;
         }
         else if (strcmp(argv[i], "-F") == 0 || strcmp(argv[i], "--fixed-string") == 0)
         {
@@ -429,6 +435,185 @@ options parse_options(int argc, char *argv[])
 
     return opts;
 }
+#include <variant>
+#include <map>
+
+using Builder = std::variant<std::monostate, struct Map, struct Vector,
+                             string, double, bool, std::nullptr_t>;
+
+struct Map
+{
+    std::map<string, Builder> map;
+};
+
+struct Vector
+{
+    std::vector<Builder> vector;
+};
+
+void print_json(Builder builder)
+{
+    if (std::holds_alternative<std::nullptr_t>(builder))
+    {
+        fast_io::io::print("null");
+        return;
+    }
+    if (std::holds_alternative<bool>(builder))
+    {
+        if (std::get<bool>(builder))
+        {
+            fast_io::io::print("true");
+        }
+        else
+        {
+            fast_io::io::print("false");
+        }
+        return;
+    }
+    if (std::holds_alternative<double>(builder))
+    {
+        fast_io::io::print(std::get<double>(builder));
+        return;
+    }
+    if (std::holds_alternative<string>(builder))
+    {
+        fast_io::io::print("\"", std::get<string>(builder), "\"");
+        return;
+    }
+    if (std::holds_alternative<Vector>(builder))
+    {
+        fast_io::io::print("[");
+        bool first = true;
+        for (auto &item : std::get<Vector>(builder).vector)
+        {
+            if (!first)
+            {
+                fast_io::io::print(", ");
+            }
+            first = false;
+            print_json(item);
+        }
+        fast_io::io::print("\n]");
+        return;
+    }
+    if (std::holds_alternative<Map>(builder))
+    {
+        fast_io::io::print("{\n");
+        bool first = true;
+        for (auto &item : std::get<Map>(builder).map)
+        {
+            if (!first)
+            {
+                fast_io::io::print(",\n");
+            }
+            first = false;
+            fast_io::io::print("\"", item.first, "\": ");
+            print_json(item.second);
+        }
+        fast_io::io::print("\n}");
+        return;
+    }
+}
+// Parse .hello[3]["asdf"] = 3.14; into builder
+void parse_json(string_view line, Builder &builder)
+{
+    if (line.empty())
+    {
+        return;
+    }
+    if (line[0] == '.')
+    {
+        if (std::holds_alternative<std::monostate>(builder))
+        {
+            builder.emplace<Map>();
+        }
+        auto &map_alt = std::get<Map>(builder).map;
+
+        // find end of key
+        size_t end = 1;
+        while (end < line.size() && line[end] != '[' && line[end] != '=' && line[end] != ' ' && line[end] != '.')
+        {
+            end++;
+        }
+        string key(line.substr(1, end - 1));
+        auto child = map_alt.find(key);
+        if (child == map_alt.end())
+        {
+            child = map_alt.emplace(key, std::monostate()).first;
+        }
+        parse_json(line.substr(end), child->second);
+    }
+    else if (line[0] == '[' && isdigit(line[1]))
+    {
+        if (std::holds_alternative<std::monostate>(builder))
+        {
+            builder.emplace<Vector>();
+        }
+        auto &vector_alt = std::get<Vector>(builder).vector;
+        size_t end = 1;
+        while (end < line.size() && line[end] != ']')
+        {
+            end++;
+        }
+        if (end != line.size())
+        {
+            end++;
+        }
+        int index = stoi(string(line.substr(1, end - 1)));
+        if (index >= vector_alt.size())
+        {
+            vector_alt.resize(index + 1);
+        }
+        parse_json(line.substr(end), vector_alt[index]);
+    }
+    else if (line[0] == '=' || (line[0] == ' ' && line[1] == '='))
+    {
+        size_t start = 1;
+        while (start < line.size() && (line[start] == ' ' || line[start] == '='))
+        {
+            start++;
+        }
+        size_t end = line.end() - line.begin();
+        while (end > start && (line[end - 1] == ' ' || line[end - 1] == ';'))
+        {
+            end--;
+        }
+        string value(line.substr(start, end - start));
+        if (value == "true")
+        {
+            builder.emplace<bool>(true);
+        }
+        else if (value == "false")
+        {
+            builder.emplace<bool>(false);
+        }
+        else if (value == "null")
+        {
+            builder.emplace<std::nullptr_t>(nullptr);
+        }
+        else if (value[0] == '-' || isdigit(value[0]))
+        {
+            builder.emplace<double>(stod(value));
+        }
+        else if (value[0] == '"')
+        {
+            builder.emplace<string>(value.substr(1, value.size() - 2));
+        }
+        else if (value == "[]")
+        {
+            builder.emplace<Vector>();
+        }
+        else if (value == "{}")
+        {
+            builder.emplace<Map>();
+        }
+        else
+        {
+            fast_io::io::perr("Invalid value: ", value, "\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
 
 void print_help()
 {
@@ -442,7 +627,8 @@ void print_help()
                       "  -F, --fixed-string  PATTERN filter output by fixed string\n"
                       "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
                       "  --sort sort output by key\n"
-                      "  --user-agent   set user agent\n");
+                      "  --user-agent   set user agent\n"
+                      "  -u, --ungron   ungron: convert gron output back to JSON (WARNING!!! extremely slow for large files)\n");
 }
 
 void print_version()
@@ -505,7 +691,6 @@ void init_string(struct string2 *s)
 
 size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string2 *s)
 {
-    fast_io::io::perr("writefunc: ", size, ", ", nmemb, "\n");
     size_t new_len = s->len + size * nmemb;
     s->ptr = (char *)realloc(s->ptr, new_len + 1);
     if (s->ptr == NULL)
@@ -595,6 +780,36 @@ int main(int argc, char *argv[])
     else
     {
         json = padded_string::load(opts.filename);
+    }
+
+    if (opts.ungron)
+    {
+        Builder builder;
+        char *data = json.data();
+        while (data < json.data() + json.size())
+        {
+            char *end = data;
+            while (end < json.data() + json.size() && *end != '\n')
+            {
+                end++;
+            }
+            string_view line = string_view(data, end - data);
+            if (line.starts_with("json"))
+            {
+                data = data + 4;
+            }
+            parse_json(string_view(data, end - data), builder);
+            data = end + 1;
+        }
+        if (std::holds_alternative<std::monostate>(builder))
+        {
+            fast_io::io::perr("Builder is not assigned\n");
+            return EXIT_FAILURE;
+        }
+        print_json(builder);
+        fast_io::io::print("\n");
+
+        return EXIT_SUCCESS;
     }
 
     // Execute as a stream
