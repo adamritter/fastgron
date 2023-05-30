@@ -19,6 +19,19 @@ struct growing_string
     std::vector<char> data;
     size_t len = 0;
     growing_string() : data(1000) {}
+    bool starts_with(string_view s) const
+    {
+        if (s.size() > len)
+        {
+            return false;
+        }
+        return memcmp(data.data(), s.data(), s.size()) == 0;
+    }
+    growing_string(string_view s) : data(s.size() + 100)
+    {
+        memcpy(data.data(), s.data(), s.size());
+        len = s.size();
+    }
     growing_string(const char *s) : data(s, s + strlen(s)), len(strlen(s)) {}
     void reserve_extra(size_t extra)
     {
@@ -383,6 +396,7 @@ struct options
     bool help;
     bool version;
     bool ungron;
+    std::string filtered_path;
 };
 
 string user_agent = "fastgron/0.3.x";
@@ -459,6 +473,15 @@ options parse_options(int argc, char *argv[])
         else if (strcmp(argv[i], "--no-indent") == 0)
         {
             no_indent = true;
+        }
+        else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--path") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                fast_io::io::perr("Missing argument for -p\n");
+                exit(EXIT_FAILURE);
+            }
+            opts.filtered_path = argv[++i];
         }
         else
         {
@@ -664,6 +687,7 @@ void print_help()
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
+        "  -p, -path      filter path, for example .cities[3][\"population\"]\n"
         "  --no-indent   don't indent output\n");
 }
 
@@ -780,6 +804,105 @@ std::string download(std::string url)
 #endif
 }
 
+void print_filtered_path(growing_string &path, int processed, ondemand::value element)
+{
+    if (processed == 0 && path.starts_with("json"))
+    {
+        processed = 4;
+    }
+    if (path.size() == processed)
+    {
+        recursive_print_gron(element, path, nullptr);
+    }
+    else if (path.data[processed] == '.')
+    {
+        int end = processed + 1;
+        while (isalnum(path.data[end]) || path.data[end] == '_')
+        {
+            end++;
+        }
+        string_view key(&path.data[processed + 1], end - processed - 1);
+        if (element.type() == ondemand::json_type::object)
+        {
+
+            auto field = element.find_field(key);
+            if (field.error() == SUCCESS)
+            {
+                print_filtered_path(path, end, field.value());
+            }
+            else
+            {
+                fast_io::io::println("field error: ", (int)field.error());
+            }
+        }
+        if (isdigit(key[0]) && element.type() == ondemand::json_type::array)
+        {
+            int index = stoi(string(key));
+            auto child = element.at(index);
+            if (child.error() == SUCCESS)
+            {
+                fast_io::io::println("child: ", index);
+                print_filtered_path(path, end, child.value());
+            }
+            else
+            {
+                fast_io::io::println("child error: ", (int)child.error());
+            }
+        }
+    }
+    else if (path.data[processed] == '[')
+    {
+        int end = processed + 1;
+        if (isdigit(path.data[end]))
+        {
+            while (isdigit(path.data[end]))
+            {
+                end++;
+            }
+            if (path.data[end] == ']')
+            {
+                int index = stoi(string(&path.data[processed + 1], end - processed - 1));
+                if (element.type() != ondemand::json_type::array)
+                {
+                    fast_io::io::perr("Element is not an array\n");
+                    exit(EXIT_FAILURE);
+                }
+                auto child = element.at(index);
+                if (child.error() == SUCCESS)
+                {
+                    print_filtered_path(path, end + 1, child.value());
+                }
+                else
+                {
+                    fast_io::io::println("child error: ", (int)child.error());
+                }
+            }
+        }
+        else if (path.data[end] == '"')
+        {
+            while (path.data[end] != '"')
+            {
+                end++;
+            }
+            end++;
+            if (path.data[end] == ']')
+            {
+                string_view key(&path.data[processed + 2], end - processed - 3);
+                auto field = element.find_field(key);
+                if (field.error() == SUCCESS)
+                {
+                    print_filtered_path(path, end + 1, field.value());
+                }
+            }
+        }
+    }
+    else
+    {
+        fast_io::io::perr("Invalid path: ", string(path), ", processed: ", processed, "\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     ondemand::parser parser;
@@ -873,8 +996,21 @@ int main(int argc, char *argv[])
     {
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
-        growing_string path = "json";
-        recursive_print_gron(val, path, nullptr);
+        growing_string path("json");
+        if (!opts.filtered_path.empty())
+        {
+            if (opts.filtered_path.starts_with("json"))
+            {
+                path.erase(0);
+            }
+            path.append(opts.filtered_path);
+            print_filtered_path(path, 0, val);
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            recursive_print_gron(val, path, nullptr);
+        }
     }
 
     return EXIT_SUCCESS;
