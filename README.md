@@ -31,7 +31,7 @@ json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
 
 > fastgron --help
-Usage: fastgron [OPTIONS] [FILE]
+Usage: fastgron [OPTIONS] [FILE | URL]
 
 positional arguments:
   FILE           file name (or '-' for standard input)
@@ -121,6 +121,7 @@ brew install adamritter/homebrew-fastgron/fastgron
 ```
 
 Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
+libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
 ## Installation
 
@@ -161,9 +162,6 @@ Here are the steps to build, test, and install `fastgron`:
 
 ## TODO
 
-These features need to be implemented to be mostly compatible with gron (and add a few more features):
-
-- Filter paths
-- Ungron
-- Color terminal support
-- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
+- Only color terminal support is missing from GRON
+- Also adding filter paths is easy and can give a great user experience.
+- Make ungron even faster by remembering keys in the last path
