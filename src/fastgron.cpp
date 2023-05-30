@@ -505,7 +505,7 @@ void print_json(Builder builder)
                 {
                     indent.erase(indent.size() - 2);
                 }
-                fast_io::io::print(indent.view(), "\n", indent.view(), "]");
+                fast_io::io::print("\n", indent.view(), "]");
             }
             else if constexpr (std::is_same_v<T, Map>)
             {
