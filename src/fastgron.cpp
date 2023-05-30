@@ -110,14 +110,41 @@ inline int raw_json_string_length(const ondemand::raw_json_string &str)
 bool force_gprint = false;
 string filter;
 std::unique_ptr<std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>> searcher;
+bool ignore_case = false;
+
+char fast_tolower(char c)
+{
+    if (c >= 'A' && c <= 'Z')
+    {
+        return c + ('a' - 'A');
+    }
+    return c;
+}
 
 void gprint(string_view s)
 {
+
     if (!filter.empty())
     {
-        if (s.find(filter) == string_view::npos)
+        if (ignore_case)
         {
-            return;
+            // std::tolower is slow, and doesn't handle UTF-8
+            auto it = std::search(
+                s.begin(), s.end(),
+                filter.begin(), filter.end(),
+                [](unsigned char ch1, unsigned char ch2)
+                { return fast_tolower(ch1) == (ch2); });
+            if (it == s.end())
+            {
+                return;
+            }
+        }
+        else
+        {
+            if (s.find(filter) == string_view::npos)
+            {
+                return;
+            }
         }
     }
     fast_io::io::print(s);
@@ -303,6 +330,10 @@ options parse_options(int argc, char *argv[])
             opts.version = true;
             break; // No need to process further arguments
         }
+        else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
+        {
+            ignore_case = true;
+        }
         else if (strcmp(argv[i], "-F") == 0 || strcmp(argv[i], "--fixed-string") == 0)
         {
             if (i + 1 >= argc)
@@ -334,7 +365,8 @@ void print_help()
                       "  -h, --help     show this help message and exit\n"
                       "  -V, --version  show version information and exit\n"
                       "  -s, --stream   enable stream mode\n"
-                      "  -F, --fixed-string  filter output by fixed string\n");
+                      "  -F, --fixed-string  PATTERN filter output by fixed string\n"
+                      "  -i, --ignore-case  ignore case distinctions in PATTERN\n");
 }
 
 void print_version()
@@ -380,6 +412,11 @@ int main(int argc, char *argv[])
     ondemand::parser parser;
 
     options opts = parse_options(argc, argv);
+    if (ignore_case)
+    {
+        std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c)
+                       { return fast_tolower(c); });
+    }
 
     if (opts.help)
     {
