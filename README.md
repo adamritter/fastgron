@@ -53,7 +53,7 @@ json[1].three[1] = 2;
 json[1].three[2] = 3;
 ```
 
-## Speed (40x speedup compared to gron --no-sort on 190MB file)
+## Speed (40x speedup compared to gron on 190MB file)
 
 citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-json/blob/master/citylots.json
 
@@ -134,6 +134,6 @@ Here are the steps to build, test, and install `fastgron`:
 These features need to be implemented to be mostly compatible with gron (and add a few more features):
 
 - Filter paths
-- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
 - Ungron
 - Color terminal support
+- Grep by regexp (Use RE2? It compiles very slowly, but probably good library)
