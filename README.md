@@ -31,7 +31,7 @@ json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
 
 > fastgron --help
-Usage: fastgron [OPTIONS] [FILE]
+Usage: fastgron [OPTIONS] [FILE | URL]
 
 positional arguments:
   FILE           file name (or '-' for standard input)
