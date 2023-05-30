@@ -83,7 +83,7 @@ options:
   --sort sort output by key
   --user-agent   set user agent
   -u, --ungron   ungron: convert gron output back to JSON
-  --no-indent   don't indent output\n");
+  --no-indent   don't indent output
 ```
 
 The file name can be - or missing, in that case the data is read from stdin.
