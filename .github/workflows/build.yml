@@ -34,7 +34,7 @@ jobs:
       - name: Install CURL
         run: |
           choco install -y curl
-          vcpkg install curl
+          vcpkg install curl:x64-windows-static
 
       - name: Build
         run: |
