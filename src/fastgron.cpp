@@ -1,7 +1,5 @@
 #include "simdjson.h"
 #include <fast_io.h>
-#include <dragonbox/dragonbox_to_chars.h>
-#include <fmt/core.h>
 #include <functional>
 
 #ifdef CURL_FOUND
@@ -82,17 +80,6 @@ void batched_print(string_view s)
 void batched_print(char c)
 {
     batched_out.append(c);
-    if (batched_out.size() > 1000000)
-    {
-        batched_print_flush();
-    }
-}
-
-void batched_print(double d)
-{
-    batched_out.reserve_extra(100);
-    char *ptr2 = fmt::format_to(batched_out.data.data() + batched_out.len, "{}", d);
-    batched_out.len = ptr2 - batched_out.data.data();
     if (batched_out.size() > 1000000)
     {
         batched_print_flush();
@@ -292,25 +279,21 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     }
     case ondemand::json_type::number:
     {
-        if (force_gprint)
+        if (true)
         {
             int base_len = path.size();
-            path.reserve_extra(jkj::dragonbox::max_output_string_length<jkj::dragonbox::ieee754_binary64> + 10);
+            path.reserve_extra(100);
             char *ptr = &path.data[base_len];
             *ptr++ = ' ';
             *ptr++ = '=';
             *ptr++ = ' ';
-            double value = element.get_double().value();
-            if (value == 0.0 || value == -0.0)
+            string_view s = element.raw_json_token();
+            while (s.size() > 0 && s[s.size() - 1] == ' ')
             {
-                *ptr++ = '0';
+                s.remove_suffix(1);
             }
-            else
-            {
-                // ptr = jkj::dragonbox::to_chars_n(element.get_double().value(), ptr);
-                ptr = fmt::format_to(ptr, "{}", element.get_double().value());
-                // fast_io::io::print(&path.data[base_len], element.get_double().value());
-            }
+            memcpy(ptr, s.data(), s.size());
+            ptr += s.size();
             *ptr++ = ';';
             *ptr++ = '\n';
             path.len = ptr - &path.data[0];
