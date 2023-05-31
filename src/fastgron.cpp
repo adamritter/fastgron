@@ -151,10 +151,10 @@ inline int raw_json_string_length(const ondemand::raw_json_string &str)
 }
 
 bool force_gprint = false;
-string filter;
-std::unique_ptr<std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>> searcher;
+vector<string> filters;
 bool ignore_case = false;
 bool sort_output = false;
+bool invert_match = false;
 
 char fast_tolower(char c)
 {
@@ -167,27 +167,35 @@ char fast_tolower(char c)
 
 bool can_show(string_view s)
 {
-    if (!filter.empty())
+    if (!filters.empty())
     {
-        if (ignore_case)
+        bool found = false;
+        for (auto filter : filters)
         {
-            // std::tolower is slow, and doesn't handle UTF-8
-            auto it = std::search(
-                s.begin(), s.end(),
-                filter.begin(), filter.end(),
-                [](unsigned char ch1, unsigned char ch2)
-                { return fast_tolower(ch1) == (ch2); });
-            if (it == s.end())
+            if (ignore_case)
             {
-                return false;
+                // std::tolower is slow, and doesn't handle UTF-8
+                auto it = std::search(
+                    s.begin(), s.end(),
+                    filter.begin(), filter.end(),
+                    [](unsigned char ch1, unsigned char ch2)
+                    { return fast_tolower(ch1) == (ch2); });
+                if (it != s.end())
+                {
+                    found = true;
+                }
+            }
+            else
+            {
+                if (s.find(filter) != string_view::npos)
+                {
+                    found = true;
+                }
             }
         }
-        else
+        if (found == invert_match)
         {
-            if (s.find(filter) == string_view::npos)
-            {
-                return false;
-            }
+            return false;
         }
     }
     return true;
@@ -446,11 +454,12 @@ options parse_options(int argc, char *argv[])
                 fast_io::io::perr("Missing argument for -F\n");
                 exit(EXIT_FAILURE);
             }
-            filter = argv[++i];
-            searcher.reset(
-                new std::boyer_moore_searcher<string::iterator, hash<char>, equal_to<void>>(
-                    filter.begin(), filter.end()));
+            filters.push_back(argv[++i]);
             force_gprint = true;
+        }
+        else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--invert-match") == 0)
+        {
+            invert_match = true;
         }
         else if (strcmp(argv[i], "--sort") == 0)
         {
@@ -486,6 +495,11 @@ options parse_options(int argc, char *argv[])
         else
         {
             opts.filename = argv[i];
+            if (access(opts.filename.c_str(), F_OK) == -1)
+            {
+                fast_io::io::perr("File not found: ", opts.filename, "\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
@@ -682,7 +696,8 @@ void print_help()
         "  -h, --help     show this help message and exit\n"
         "  -V, --version  show version information and exit\n"
         "  -s, --stream   enable stream mode\n"
-        "  -F, --fixed-string PATTERN  filter output by fixed string\n"
+        "  -F, --fixed-string PATTERN  filter output by fixed string. If -F is provided multiple times, multiple patterns are searched.\n"
+        "  -v, --invert-match select non-matching lines for fixed string search\n"
         "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
@@ -817,12 +832,45 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
     else if (path.data[processed] == '.')
     {
         int end = processed + 1;
-        while (isalnum(path.data[end]) || path.data[end] == '_')
+        while (end < path.size() && path.data[end] != '[' && path.data[end] != '.')
         {
             end++;
         }
         string_view key(&path.data[processed + 1], end - processed - 1);
-        if (element.type() == ondemand::json_type::object)
+        if (key == "#")
+        {
+            if (element.type() == ondemand::json_type::array)
+            {
+                int index = 0;
+                growing_string path2 = path.view().substr(0, processed);
+                for (auto child : element.get_array())
+                {
+                    path2.append("[");
+                    path2.append(std::to_string(index++));
+                    path2.append("]");
+                    int processed2 = path2.len;
+                    path2.append(path.view().substr(end));
+                    print_filtered_path(path2, processed2, child.value());
+                    path2.erase(processed);
+                }
+            }
+            else if (element.type() == ondemand::json_type::object)
+            {
+                for (auto field : element.get_object())
+                {
+                    path.append(".");
+                    path.append(field.unescaped_key().value());
+                    print_filtered_path(path, end, field.value());
+                    path.erase(processed + 1);
+                }
+            }
+            else
+            {
+                fast_io::io::perr("Element is not an array or object at path ", string(path).substr(0, processed + 1), "\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (element.type() == ondemand::json_type::object)
         {
 
             auto field = element.find_field(key);
@@ -832,16 +880,22 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             }
             else
             {
-                fast_io::io::println("field error: ", (int)field.error());
+                if (field.error() == 19)
+                {
+                    fast_io::io::perr("field error: key: ", key, " not found in path ", string(path), "\n");
+                }
+                else
+                {
+                    fast_io::io::println("field error: ", (int)field.error());
+                }
             }
         }
-        if (isdigit(key[0]) && element.type() == ondemand::json_type::array)
+        else if (isdigit(key[0]) && element.type() == ondemand::json_type::array)
         {
             int index = stoi(string(key));
             auto child = element.at(index);
             if (child.error() == SUCCESS)
             {
-                fast_io::io::println("child: ", index);
                 print_filtered_path(path, end, child.value());
             }
             else
@@ -864,7 +918,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
                 int index = stoi(string(&path.data[processed + 1], end - processed - 1));
                 if (element.type() != ondemand::json_type::array)
                 {
-                    fast_io::io::perr("Element is not an array\n");
+                    fast_io::io::perr("Element is not an array at path ", string(path).substr(0, processed + 1), "\n");
                     exit(EXIT_FAILURE);
                 }
                 auto child = element.at(index);
@@ -910,8 +964,11 @@ int main(int argc, char *argv[])
     options opts = parse_options(argc, argv);
     if (ignore_case)
     {
-        std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c)
-                       { return fast_tolower(c); });
+        for (auto &filter : filters)
+        {
+            std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c)
+                           { return fast_tolower(c); });
+        }
     }
 
     if (opts.help)
@@ -1002,6 +1059,11 @@ int main(int argc, char *argv[])
             if (opts.filtered_path.starts_with("json"))
             {
                 path.erase(0);
+            }
+            else if (!(opts.filtered_path[0] == '.' ||
+                       opts.filtered_path[0] == '['))
+            {
+                path.append(".");
             }
             path.append(opts.filtered_path);
             print_filtered_path(path, 0, val);
