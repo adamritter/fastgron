@@ -715,7 +715,8 @@ void print_help()
         "  --user-agent   set user agent\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
-        "  --no-indent   don't indent output\n");
+        "  --no-indent   don't indent output\n\n"
+        "Home page with more information: https://github.com/adamritter/fastgron\n");
 }
 
 void print_version()
