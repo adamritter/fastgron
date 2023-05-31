@@ -702,7 +702,7 @@ void print_help()
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
-        "  -p, -path      filter path, for example .cities[3][\"population\"]\n"
+        "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "  --no-indent   don't indent output\n");
 }
 
@@ -856,12 +856,15 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             }
             else if (element.type() == ondemand::json_type::object)
             {
+                growing_string path2 = path.view().substr(0, processed);
                 for (auto field : element.get_object())
                 {
-                    path.append(".");
-                    path.append(field.unescaped_key().value());
-                    print_filtered_path(path, end, field.value());
-                    path.erase(processed + 1);
+                    path2.append(".");
+                    path2.append(field.unescaped_key().value());
+                    int processed2 = path2.len;
+                    path2.append(path.view().substr(end));
+                    print_filtered_path(path2, processed2, field.value());
+                    path2.erase(processed);
                 }
             }
             else
@@ -907,6 +910,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
     else if (path.data[processed] == '[')
     {
         int end = processed + 1;
+
         if (isdigit(path.data[end]))
         {
             while (isdigit(path.data[end]))
@@ -947,6 +951,53 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
                 {
                     print_filtered_path(path, end + 1, field.value());
                 }
+            }
+        }
+        else if (path.data[end] == '#')
+        {
+            end++;
+            if (path.data[end] == ']')
+            {
+                end++;
+                if (element.type() == ondemand::json_type::array)
+                {
+                    growing_string path2 = path.view().substr(0, processed);
+                    int index = 0;
+                    for (auto child : element.get_array())
+                    {
+                        path2.append("[");
+                        path2.append(std::to_string(index++));
+                        path2.append("]");
+                        int processed2 = path2.len;
+                        path2.append(path.view().substr(end));
+                        print_filtered_path(path2, processed2, child.value());
+                        path2.erase(processed);
+                    }
+                }
+                else if (element.type() == ondemand::json_type::object)
+                {
+                    growing_string path2 = path.view().substr(0, processed);
+                    for (auto field : element.get_object())
+                    {
+                        path2.append("[\"");
+                        path2.append(field.unescaped_key().value());
+                        path2.append("\"]");
+                        int processed2 = path2.len;
+                        path2.append(path.view().substr(end));
+                        print_filtered_path(path2, processed2, field.value());
+                        path2.erase(processed);
+                    }
+                }
+                else
+                {
+                    fast_io::io::perr("Element is not an array or object at path ", string(path).substr(0, processed + 1), "\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                fast_io::io::perr("Invalid path: ", string(path), ", processed: ", processed, "\n");
+                exit(EXIT_FAILURE);
             }
         }
     }
