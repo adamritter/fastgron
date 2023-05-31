@@ -494,11 +494,23 @@ options parse_options(int argc, char *argv[])
         }
         else
         {
-            opts.filename = argv[i];
-            if (access(opts.filename.c_str(), F_OK) == -1)
+            if (access(argv[i], F_OK) == -1)
             {
-                fast_io::io::perr("File not found: ", opts.filename, "\n");
-                exit(EXIT_FAILURE);
+                // Treat strings starting with . as paths
+                if (argv[i][0] == '.')
+                {
+                    opts.filtered_path = argv[i];
+                    continue;
+                }
+                else
+                {
+                    fast_io::io::perr("File not found: ", opts.filename, "\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                opts.filename = argv[i];
             }
         }
     }
