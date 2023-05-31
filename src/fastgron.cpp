@@ -11,6 +11,10 @@
 #include <sys/stat.h>
 #include <version.h>
 
+#ifndef FASTGRON_VERSION
+#define FASTGRON_VERSION "<MISSING VERSION INFORMATION>"
+#endif
+
 #ifdef _MSC_VER
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
