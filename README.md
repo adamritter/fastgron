@@ -78,11 +78,13 @@ options:
   -h, --help     show this help message and exit
   -V, --version  show version information and exit
   -s, --stream   enable stream mode
-  -F, --fixed-string  PATTERN filter output by fixed string
+  -F, --fixed-string PATTERN  filter output by fixed string. If -F is provided multiple times, multiple patterns are searched.
+  -v, --invert-match select non-matching lines for fixed string search
   -i, --ignore-case  ignore case distinctions in PATTERN
   --sort sort output by key
   --user-agent   set user agent
   -u, --ungron   ungron: convert gron output back to JSON
+  -p, -path      filter path, for example .#.3.population or cities.#.population
   --no-indent   don't indent output
 ```
 
