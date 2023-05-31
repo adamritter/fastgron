@@ -9,6 +9,7 @@
 #include <cstring> // for strcmp
 #include <variant>
 #include <sys/stat.h>
+#include <version.h>
 
 #ifdef _MSC_VER
 #include <BaseTsd.h>
@@ -727,7 +728,7 @@ void print_help()
 void print_version()
 {
 
-    cerr << "fastgron version 0.4.x\n";
+    cerr << "fastgron version " << FASTGRON_VERSION << "\n";
 }
 
 std::string readFileIntoString(int fd)
