@@ -194,4 +194,3 @@ Here are the steps to build, test, and install `fastgron`:
 - Only color terminal support is missing from GRON
 - Make ungron even faster by remembering keys in the last path
 - Paths: Implement path autocompletition, \* / ?, \.
-- Save a memcpy by writing to output buffer directly
