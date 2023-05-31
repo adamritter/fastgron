@@ -14,7 +14,7 @@ add_executable(fastgron
     src/fastgron.cpp
     extern/simdjson/simdjson.cpp
 )
-target_include_directories(fastgron PRIVATE extern/simdjson extern/fast_io extern/absl)
+target_include_directories(fastgron PRIVATE extern/simdjson)
 
 find_package(CURL)
 

@@ -4,7 +4,7 @@ Make JSON greppable super fast!
 
 fastgron transforms JSON into discrete assignments to make it easier to grep for what you want and see the absolute 'path' to it. It eases the exploration of APIs that return large blobs of JSON but have terrible documentation.
 
-`fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson and fast_io libraries.
+`fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson library.
 It's 50x faster than [gron](https://github.com/tomnomnom/gron) on big files, so it makes big JSON files greppable.
 
 ```bash
@@ -122,13 +122,13 @@ citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-js
 
 ```
 time fastgron ~/Downloads/citylots.json > /dev/null
-fastgron ~/Downloads/citylots.json > /dev/null  0.60s user 0.08s system 99% cpu 0.680 total
+fastgron ~/Downloads/citylots.json > /dev/null  0.39s user 0.07s system 99% cpu 0.465 total
 
 time gron --no-sort ~/Downloads/citylots.json  >/dev/null
-gron --no-sort ~/Downloads/citylots.json > /dev/null  30.12s user 36.74s system 161% cpu 41.501 total
+gron --no-sort ~/Downloads/citylots.json > /dev/null  27.60s user 30.73s system 158% cpu 36.705 total
 
 time fastgron --sort ~/Downloads/citylots.json > /dev/null
-fastgron --sort ~/Downloads/citylots.json > /dev/null  1.01s user 0.39s system 90% cpu 1.535 total
+fastgron --sort ~/Downloads/citylots.json > /dev/null  1.05s user 0.41s system 99% cpu 1.464 total
 
 time gron ~/Downloads/citylots.json > /dev/null
 gron ~/Downloads/citylots.json > /dev/null 52.34s user 48.46s system 117% cpu 1:25.80 total
@@ -141,11 +141,11 @@ json.features[132480].properties.STREET = "UTAH";
 ...
 json.features[139041].properties.STREET = "UTAH";
 json.features[139489].properties.STREET = "UTAH";
-fastgron ~/Downloads/citylots.json 1.00s user 0.11s system 98% cpu 1.128 total
-rg UTAH 0.09s user 0.07s system 14% cpu 1.127 total
+fastgron ~/Downloads/citylots.json  0.39s user 0.11s system 80% cpu 0.629 total
+rg UTAH  0.07s user 0.05s system 19% cpu 0.629 total
 
 time fastgron -u citylots.gson > c2.json
-fastgron -u citylots.gson > c2.json  5.72s user 0.68s system 98% cpu 6.532 total
+fastgron -u citylots.gson > c2.json  5.62s user 0.47s system 99% cpu 6.122 total
 
 time gron -u citylots.gson > c3.json
 [2]    8270 killed     gron -u citylots.gson > c3.json

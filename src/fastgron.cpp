@@ -1,6 +1,21 @@
 #include "simdjson.h"
-#include <fast_io.h>
 #include <functional>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <string_view>
+#include <map>
+#include <cstring> // for strcmp
+#include <variant>
+#include <sys/stat.h>
+
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+#include <unistd.h>
+#endif
 
 #ifdef CURL_FOUND
 #include <curl/curl.h>
@@ -73,11 +88,26 @@ struct growing_string
     }
 };
 
+void write_all(string_view s)
+{
+    int written = 0;
+    while (written < s.size())
+    {
+        int w = write(1, s.data() + written, s.size() - written);
+        if (w == -1)
+        {
+            cerr << "write failed\n";
+            exit(EXIT_FAILURE);
+        }
+        written += w;
+    }
+}
+
 growing_string batched_out;
 
 void batched_print_flush()
 {
-    fast_io::io::print(batched_out.view());
+    write_all(batched_out.view());
     batched_out.erase(0);
 }
 
@@ -150,7 +180,6 @@ inline int raw_json_string_length(const ondemand::raw_json_string &str)
     }
 }
 
-bool force_gprint = false;
 vector<string> filters;
 bool ignore_case = false;
 bool sort_output = false;
@@ -210,16 +239,14 @@ void gprint(string_view s, growing_string *out_growing_string)
 
     if (out_growing_string)
     {
-        // fast_io::io::print("out_growing_string.append at gprint: ", string(*out_growing_string), ":)))\n");
         out_growing_string->append(s);
         return;
     }
-    fast_io::io::print(s);
+    batched_print(s);
 }
 
 void recursive_print_gron(ondemand::value element, growing_string &path, growing_string *out_growing_string)
 {
-    // fast_io::io::print("path: ", string(path), " out_growing_string is nullptr: ", out_growing_string == nullptr, "::)))\n");
     switch (element.type())
     {
     case ondemand::json_type::array:
@@ -271,7 +298,6 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                     path.append(key.value());
                 }
                 recursive_print_gron(field.value(), path, &out2);
-                // fast_io::io::print("key0: ", key_str, " value: ", string(out2), ":)\n");
                 path.erase(base_len);
                 fields.emplace_back(key_str, string(out2));
                 out2.erase(0);
@@ -280,7 +306,6 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                       { return a.first < b.first; });
             for (auto &field : fields)
             {
-                // fast_io::io::print("key: ", field.first, " value: ", field.second, "::)\n");
                 gprint(field.second, out_growing_string);
             }
         }
@@ -309,61 +334,44 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     }
     case ondemand::json_type::number:
     {
-        if (true)
+        int base_len = path.size();
+        path.reserve_extra(100);
+        char *ptr = &path.data[base_len];
+        *ptr++ = ' ';
+        *ptr++ = '=';
+        *ptr++ = ' ';
+        string_view s = element.raw_json_token();
+        while (s.size() > 0 && s[s.size() - 1] == ' ')
         {
-            int base_len = path.size();
-            path.reserve_extra(100);
-            char *ptr = &path.data[base_len];
-            *ptr++ = ' ';
-            *ptr++ = '=';
-            *ptr++ = ' ';
-            string_view s = element.raw_json_token();
-            while (s.size() > 0 && s[s.size() - 1] == ' ')
-            {
-                s.remove_suffix(1);
-            }
-            memcpy(ptr, s.data(), s.size());
-            ptr += s.size();
-            *ptr++ = ';';
-            *ptr++ = '\n';
-            path.len = ptr - &path.data[0];
-            gprint(path, out_growing_string);
-            path.erase(base_len);
+            s.remove_suffix(1);
         }
-        else
-        {
-            fast_io::io::print(path.view(), " = ", element.get_double().value(), ";\n");
-        }
+        memcpy(ptr, s.data(), s.size());
+        ptr += s.size();
+        *ptr++ = ';';
+        *ptr++ = '\n';
+        path.len = ptr - &path.data[0];
+        gprint(path, out_growing_string);
+        path.erase(base_len);
         break;
     }
     case ondemand::json_type::string:
     {
-        if (force_gprint)
-        {
-            size_t base_len = path.size();
-            int raw_json_string_len = raw_json_string_length(element.get_raw_json_string());
-            path.reserve_extra(raw_json_string_len + 20);
-            char *ptr = &path.data[base_len];
-            *ptr++ = ' ';
-            *ptr++ = '=';
-            *ptr++ = ' ';
-            *ptr++ = '"';
-            memcpy(ptr, element.get_raw_json_string().raw(), raw_json_string_len);
-            ptr += raw_json_string_len;
-            *ptr++ = '"';
-            *ptr++ = ';';
-            *ptr++ = '\n';
-            path.len = ptr - &path.data[0];
-            gprint(path, out_growing_string);
-            path.erase(base_len);
-        }
-        else
-        {
-            fast_io::io::print(path.view(), " = \"",
-                               string_view(element.get_raw_json_string().raw(),
-                                           raw_json_string_length(element.get_raw_json_string())),
-                               "\";\n");
-        }
+        size_t base_len = path.size();
+        int raw_json_string_len = raw_json_string_length(element.get_raw_json_string());
+        path.reserve_extra(raw_json_string_len + 20);
+        char *ptr = &path.data[base_len];
+        *ptr++ = ' ';
+        *ptr++ = '=';
+        *ptr++ = ' ';
+        *ptr++ = '"';
+        memcpy(ptr, element.get_raw_json_string().raw(), raw_json_string_len);
+        ptr += raw_json_string_len;
+        *ptr++ = '"';
+        *ptr++ = ';';
+        *ptr++ = '\n';
+        path.len = ptr - &path.data[0];
+        gprint(path, out_growing_string);
+        path.erase(base_len);
         break;
     }
     case ondemand::json_type::boolean:
@@ -394,7 +402,6 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     }
     }
 }
-#include <cstring> // for strcmp
 
 // Parse command-line options
 struct options
@@ -451,11 +458,10 @@ options parse_options(int argc, char *argv[])
         {
             if (i + 1 >= argc)
             {
-                fast_io::io::perr("Missing argument for -F\n");
+                cerr << "Missing argument for -F\n";
                 exit(EXIT_FAILURE);
             }
             filters.push_back(argv[++i]);
-            force_gprint = true;
         }
         else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--invert-match") == 0)
         {
@@ -464,7 +470,6 @@ options parse_options(int argc, char *argv[])
         else if (strcmp(argv[i], "--sort") == 0)
         {
             sort_output = true;
-            force_gprint = true;
         }
         else if (strcmp(argv[i], "--no-sort") == 0)
         {
@@ -474,7 +479,7 @@ options parse_options(int argc, char *argv[])
         {
             if (i + 1 >= argc)
             {
-                fast_io::io::perr("Missing argument for --user-agent\n");
+                cerr << "Missing argument for --user-agent\n";
                 exit(EXIT_FAILURE);
             }
             user_agent = argv[++i];
@@ -487,7 +492,7 @@ options parse_options(int argc, char *argv[])
         {
             if (i + 1 >= argc)
             {
-                fast_io::io::perr("Missing argument for -p\n");
+                cerr << "Missing argument for -p\n";
                 exit(EXIT_FAILURE);
             }
             opts.filtered_path = argv[++i];
@@ -504,7 +509,7 @@ options parse_options(int argc, char *argv[])
                 }
                 else
                 {
-                    fast_io::io::perr("File not found: ", opts.filename, "\n");
+                    cerr << "File not found: " << argv[i] << "\n";
                     exit(EXIT_FAILURE);
                 }
             }
@@ -517,8 +522,6 @@ options parse_options(int argc, char *argv[])
 
     return opts;
 }
-#include <variant>
-#include <map>
 
 // string_view is a bit faster, but needs to hold original document in memory.
 #define string_variant string_view
@@ -696,7 +699,7 @@ void parse_json(string_view line, Builder &builder)
 
 void print_help()
 {
-    fast_io::io::perr(
+    cerr <<
 #ifdef CURL_FOUND
         "Usage: fastgron [OPTIONS] [FILE | URL] [.path]\n\n"
 #else
@@ -718,26 +721,14 @@ void print_help()
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "                 -p is optional if path starts with . and file with that name doesn't exist\n"
         "  --no-indent   don't indent output\n\n"
-        "Home page with more information: https://github.com/adamritter/fastgron\n");
+        "Home page with more information: https://github.com/adamritter/fastgron\n";
 }
 
 void print_version()
 {
 
-    fast_io::io::perr("fastgron version 0.4.x\n");
+    cerr << "fastgron version 0.4.x\n";
 }
-
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <vector>
-#include <iostream>
-
-#ifdef _MSC_VER
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#else
-#include <unistd.h>
-#endif
 
 std::string readFileIntoString(int fd)
 {
@@ -752,7 +743,7 @@ std::string readFileIntoString(int fd)
 
     if (bytesRead == -1)
     {
-        fast_io::io::perr("Failed to read file\n");
+        cerr << "Failed to read file\n";
         return "";
     }
 
@@ -774,7 +765,7 @@ void init_string(struct string2 *s)
     s->ptr = (char *)malloc(s->len + 1);
     if (s->ptr == NULL)
     {
-        fprintf(stderr, "malloc() failed\n");
+        cerr << "malloc() failed\n";
         exit(EXIT_FAILURE);
     }
     s->ptr[0] = '\0';
@@ -786,7 +777,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string2 *s)
     s->ptr = (char *)realloc(s->ptr, new_len + 1);
     if (s->ptr == NULL)
     {
-        fprintf(stderr, "realloc() failed\n");
+        cerr << "realloc() failed\n";
         exit(EXIT_FAILURE);
     }
     memcpy(s->ptr + s->len, ptr, size * nmemb);
@@ -819,7 +810,7 @@ std::string download(std::string url)
         if (res != CURLE_OK)
         {
             const char *curl_err_msg = curl_easy_strerror(res);
-            fast_io::io::perr("Error when downloading data: ", string(curl_err_msg), "\n");
+            cerr << "Error when downloading data: " << string(curl_err_msg) << "\n";
             exit(EXIT_FAILURE);
         }
         free(s.ptr);
@@ -829,7 +820,7 @@ std::string download(std::string url)
     }
     return r;
 #else
-    fast_io::io::perr("CURL wasn't compiled in fastgron\n");
+    cerr << "CURL wasn't compiled in fastgron\n";
     exit(EXIT_FAILURE);
 #endif
 }
@@ -884,7 +875,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             }
             else
             {
-                fast_io::io::perr("Element is not an array or object at path ", string(path).substr(0, processed + 1), "\n");
+                cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
                 exit(EXIT_FAILURE);
             }
         }
@@ -900,11 +891,11 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             {
                 if (field.error() == 19)
                 {
-                    fast_io::io::perr("field error: key: ", key, " not found in path ", string(path), "\n");
+                    cerr << "field error: key: " << key << " not found in path " << string(path) << "\n";
                 }
                 else
                 {
-                    fast_io::io::println("field error: ", (int)field.error());
+                    cerr << "field error: " << (int)field.error() << "\n";
                 }
             }
         }
@@ -918,7 +909,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             }
             else
             {
-                fast_io::io::println("child error: ", (int)child.error());
+                cerr << "child error: " << (int)child.error() << "\n";
             }
         }
     }
@@ -937,7 +928,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
                 int index = stoi(string(&path.data[processed + 1], end - processed - 1));
                 if (element.type() != ondemand::json_type::array)
                 {
-                    fast_io::io::perr("Element is not an array at path ", string(path).substr(0, processed + 1), "\n");
+                    cerr << "Element is not an array at path " << string(path).substr(0, processed + 1) << "\n";
                     exit(EXIT_FAILURE);
                 }
                 auto child = element.at(index);
@@ -947,7 +938,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
                 }
                 else
                 {
-                    fast_io::io::println("child error: ", (int)child.error());
+                    cerr << "child error: " << (int)child.error() << "\n";
                 }
             }
         }
@@ -1005,20 +996,20 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
                 }
                 else
                 {
-                    fast_io::io::perr("Element is not an array or object at path ", string(path).substr(0, processed + 1), "\n");
+                    cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
                     exit(EXIT_FAILURE);
                 }
             }
             else
             {
-                fast_io::io::perr("Invalid path: ", string(path), ", processed: ", processed, "\n");
+                cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
                 exit(EXIT_FAILURE);
             }
         }
     }
     else
     {
-        fast_io::io::perr("Invalid path: ", string(path), ", processed: ", processed, "\n");
+        cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
         exit(EXIT_FAILURE);
     }
 }
@@ -1091,7 +1082,7 @@ int main(int argc, char *argv[])
         }
         if (std::holds_alternative<string_variant>(builder) && std::get<string_variant>(builder) == "")
         {
-            fast_io::io::perr("Builder is not assigned\n");
+            cerr << "Builder is not assigned\n";
             return EXIT_FAILURE;
         }
         batched_out.reserve_extra(1000000);
@@ -1107,7 +1098,7 @@ int main(int argc, char *argv[])
     {
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
-        fast_io::io::print("json = [];\n");
+        gprint("json = [];\n", nullptr);
         for (auto doc : docs)
         {
             growing_string path = growing_string("json[").append(to_string(index++)).append("]");
@@ -1140,6 +1131,7 @@ int main(int argc, char *argv[])
             recursive_print_gron(val, path, nullptr);
         }
     }
+    batched_print_flush();
 
     return EXIT_SUCCESS;
 }
