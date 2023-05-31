@@ -698,9 +698,9 @@ void print_help()
 {
     fast_io::io::perr(
 #ifdef CURL_FOUND
-        "Usage: fastgron [OPTIONS] [FILE | URL]\n\n"
+        "Usage: fastgron [OPTIONS] [FILE | URL] [.path]\n\n"
 #else
-        "Usage: fastgron [OPTIONS] [FILE]\n\n"
+        "Usage: fastgron [OPTIONS] [FILE] [.path]\n\n"
 #endif
         "positional arguments:\n"
         "  FILE           file name (or '-' for standard input)\n\n"
@@ -716,6 +716,7 @@ void print_help()
         "  --user-agent   set user agent\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
+        "                 -p is optional if path starts with . and file with that name doesn't exist\n"
         "  --no-indent   don't indent output\n\n"
         "Home page with more information: https://github.com/adamritter/fastgron\n");
 }

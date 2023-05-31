@@ -69,7 +69,7 @@ json.contact.email = "mail@tomnomnom.com";
 json.contact.twitter = "@TomNomNom";
 
 > fastgron --help
-Usage: fastgron [OPTIONS] [FILE | URL]
+Usage: fastgron [OPTIONS] [FILE | URL] [.path]
 
 positional arguments:
   FILE           file name (or '-' for standard input)
@@ -86,6 +86,7 @@ options:
   --user-agent   set user agent
   -u, --ungron   ungron: convert gron output back to JSON
   -p, -path      filter path, for example .#.3.population or cities.#.population
+                 -p is optional if path starts with . and file with that name doesn't exist
   --no-indent   don't indent output
 ```
 
