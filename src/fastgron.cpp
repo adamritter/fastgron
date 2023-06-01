@@ -429,8 +429,9 @@ struct options
     std::string filtered_path;
 };
 string root = "json";
+bool semicolon = false;
 
-string user_agent = "fastgron/0.3.x";
+string user_agent = "fastgron";
 bool no_indent = false;
 
 options parse_options(int argc, char *argv[])
