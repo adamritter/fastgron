@@ -5,7 +5,7 @@ Make JSON greppable super fast!
 fastgron transforms JSON into discrete assignments to make it easier to grep for what you want and see the absolute 'path' to it. It eases the exploration of APIs that return large blobs of JSON but have terrible documentation.
 
 `fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson library.
-It's 50x faster than [gron](https://github.com/tomnomnom/gron) on big files (400MB/s), so it makes big JSON files greppable.
+It's 50x faster than [gron](https://github.com/tomnomnom/gron) on big files (400MB/s input / 1.8GB/s output on M1 Macbook Pro), so it makes big JSON files greppable.
 
 ```bash
 > fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author
@@ -194,4 +194,3 @@ Here are the steps to build, test, and install `fastgron`:
 - Only color terminal support is missing from GRON
 - Make ungron even faster by remembering keys in the last path
 - Paths: Implement path autocompletition, \* / ?, \.
-- Save a memcpy by writing to output buffer directly
