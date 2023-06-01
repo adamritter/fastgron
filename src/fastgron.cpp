@@ -343,9 +343,10 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     }
     case ondemand::json_type::number:
     {
-        int base_len = path.size();
-        path.reserve_extra(100);
-        char *ptr = &path.data[base_len];
+        size_t orig_out_len = out_growing_string.size();
+        out_growing_string.reserve_extra(100);
+        memcpy(&out_growing_string.data[orig_out_len], &*path.data.begin(), path.size());
+        char *ptr = &out_growing_string.data[orig_out_len];
         *ptr++ = ' ';
         *ptr++ = '=';
         *ptr++ = ' ';
@@ -358,24 +359,27 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         ptr += s.size();
         *ptr++ = ';';
         *ptr++ = '\n';
-        path.len = ptr - &path.data[0];
-        gprint(path, out_growing_string);
-        path.erase(base_len);
+        if (can_show(out_growing_string.view()))
+        {
+            out_growing_string.len = ptr - &out_growing_string.data[0];
+        }
         break;
     }
     case ondemand::json_type::string:
     {
         size_t base_len = path.size();
-        int raw_json_string_len = raw_json_string_length(element.get_raw_json_string());
-        path.reserve_extra(raw_json_string_len + 20);
+        string_view s = element.raw_json_token();
+        path.reserve_extra(s.size() + 20);
         char *ptr = &path.data[base_len];
         *ptr++ = ' ';
         *ptr++ = '=';
         *ptr++ = ' ';
-        *ptr++ = '"';
-        memcpy(ptr, element.get_raw_json_string().raw(), raw_json_string_len);
-        ptr += raw_json_string_len;
-        *ptr++ = '"';
+        while (s.size() > 0 && s[s.size() - 1] == ' ')
+        {
+            s.remove_suffix(1);
+        }
+        memcpy(ptr, s.data(), s.size());
+        ptr += s.size();
         *ptr++ = ';';
         *ptr++ = '\n';
         path.len = ptr - &path.data[0];
