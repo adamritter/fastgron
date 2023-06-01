@@ -37,7 +37,7 @@ fastgron can work backwards too, enabling you to turn your filtered data back in
 MacOS, Linux:
 
 ```bash
-brew install adamritter/homebrew-fastgron/fastgron
+brew install fastgron
 ```
 
 Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
