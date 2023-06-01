@@ -9,10 +9,10 @@ It's 50x faster than [gron](https://github.com/tomnomnom/gron) on big files (400
 
 ```bash
 > fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author
-json[0].commit.author = {};
-json[0].commit.author.name = "adamritter";
-json[0].commit.author.email = "58403584+adamritter@users.noreply.github.com";
-json[0].commit.author.date = "2023-05-30T18:04:25Z";
+json[0].commit.author = {}
+json[0].commit.author.name = "adamritter"
+json[0].commit.author.email = "58403584+adamritter@users.noreply.github.com"
+json[0].commit.author.date = "2023-05-30T18:04:25Z"
 ```
 
 fastgron can work backwards too, enabling you to turn your filtered data back into JSON:
@@ -57,16 +57,16 @@ libcurl support is missing from the released binary, so http / https URLs can't 
     }
 }
 > fastgron testdata/two.json
-json = {};
-json.name = "Tom";
-json.github = "https://github.com/tomnomnom/";
-json.likes = [];
-json.likes[0] = "code";
-json.likes[1] = "cheese";
-json.likes[2] = "meat";
-json.contact = {};
-json.contact.email = "mail@tomnomnom.com";
-json.contact.twitter = "@TomNomNom";
+json = {}
+json.name = "Tom"
+json.github = "https://github.com/tomnomnom/"
+json.likes = []
+json.likes[0] = "code"
+json.likes[1] = "cheese"
+json.likes[2] = "meat"
+json.contact = {}
+json.contact.email = "mail@tomnomnom.com"
+json.contact.twitter = "@TomNomNom"
 
 > fastgron --help
 Usage: fastgron [OPTIONS] [FILE | URL] [.path]
@@ -97,21 +97,21 @@ The file name can be - or missing, in that case the data is read from stdin.
 ## JSON lines (-s or --stream)
 
 ```fastgron testdata/stream.json -s
-json = [];
-json[0] = {};
-json[0].one = 1;
-json[0].two = 2;
-json[0].three = [];
-json[0].three[0] = 1;
-json[0].three[1] = 2;
-json[0].three[2] = 3;
-json[1] = {};
-json[1].one = 1;
-json[1].two = 2;
-json[1].three = [];
-json[1].three[0] = 1;
-json[1].three[1] = 2;
-json[1].three[2] = 3;
+json = []
+json[0] = {}
+json[0].one = 1
+json[0].two = 2
+json[0].three = []
+json[0].three[0] = 1
+json[0].three[1] = 2
+json[0].three[2] = 3
+json[1] = {}
+json[1].one = 1
+json[1].two = 2
+json[1].three = []
+json[1].three[0] = 1
+json[1].three[1] = 2
+json[1].three[2] = 3
 ```
 
 ## Speed (50x speedup compared to gron on 190MB file)
@@ -136,13 +136,13 @@ time gron ~/Downloads/citylots.json > /dev/null
 gron ~/Downloads/citylots.json > /dev/null 52.34s user 48.46s system 117% cpu 1:25.80 total
 
 time fastgron ~/Downloads/citylots.json | rg UTAH
-json.features[132396].properties.STREET = "UTAH";
-json.features[132434].properties.STREET = "UTAH";
-json.features[132438].properties.STREET = "UTAH";
-json.features[132480].properties.STREET = "UTAH";
+json.features[132396].properties.STREET = "UTAH"
+json.features[132434].properties.STREET = "UTAH"
+json.features[132438].properties.STREET = "UTAH"
+json.features[132480].properties.STREET = "UTAH"
 ...
-json.features[139041].properties.STREET = "UTAH";
-json.features[139489].properties.STREET = "UTAH";
+json.features[139041].properties.STREET = "UTAH"
+json.features[139489].properties.STREET = "UTAH"
 fastgron ~/Downloads/citylots.json  0.39s user 0.11s system 80% cpu 0.629 total
 rg UTAH  0.07s user 0.05s system 19% cpu 0.629 total
 
