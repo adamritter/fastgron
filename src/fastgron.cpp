@@ -91,6 +91,11 @@ struct growing_string
     {
         return {data.data(), len};
     }
+    void clear_mem()
+    {
+        len = 0;
+        data.clear();
+    }
 };
 
 void write_all(string_view s)
@@ -116,22 +121,29 @@ void batched_print_flush()
     batched_out.erase(0);
 }
 
-void batched_print(string_view s)
+void batched_print_flush_if_needed()
 {
-    batched_out.append(s);
     if (batched_out.size() > 1000000)
     {
         batched_print_flush();
     }
 }
 
+void batched_print(string_view s)
+{
+    batched_out.append(s);
+    batched_print_flush_if_needed();
+}
+
+void batched_print_no_flush(string_view s)
+{
+    batched_out.append(s);
+}
+
 void batched_print(char c)
 {
     batched_out.append(c);
-    if (batched_out.size() > 1000000)
-    {
-        batched_print_flush();
-    }
+    batched_print_flush_if_needed();
 }
 
 bool is_js_identifier(string_view s)
@@ -235,22 +247,16 @@ bool can_show(string_view s)
     return true;
 }
 
-void gprint(string_view s, growing_string *out_growing_string)
+void gprint(string_view s, growing_string &out_growing_string)
 {
     if (!can_show(s))
     {
         return;
     }
-
-    if (out_growing_string)
-    {
-        out_growing_string->append(s);
-        return;
-    }
-    batched_print(s);
+    out_growing_string.append(s);
 }
 
-void recursive_print_gron(ondemand::value element, growing_string &path, growing_string *out_growing_string)
+void recursive_print_gron(ondemand::value element, growing_string &path, growing_string &out_growing_string)
 {
     switch (element.type())
     {
@@ -281,10 +287,8 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         path.append(" = {};\n");
         gprint(path, out_growing_string);
         path.erase(base_len);
-        // gprint("OBJECT************\n", out_growing_string);
         if (sort_output)
         {
-            // gprint("SORT**********\n", out_growing_string);
             std::vector<std::pair<string, string>> fields;
             growing_string out2;
             for (auto field : element.get_object())
@@ -302,7 +306,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                     path.append(".");
                     path.append(key.value());
                 }
-                recursive_print_gron(field.value(), path, &out2);
+                recursive_print_gron(field.value(), path, out2);
                 path.erase(base_len);
                 fields.emplace_back(key_str, string(out2));
                 out2.erase(0);
@@ -311,7 +315,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                       { return a.first < b.first; });
             for (auto &field : fields)
             {
-                gprint(field.second, out_growing_string);
+                out_growing_string.append(field.second);
             }
         }
         else
@@ -406,6 +410,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         break;
     }
     }
+    batched_print_flush_if_needed();
 }
 
 // Parse command-line options
@@ -838,7 +843,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
     }
     if (path.size() == processed)
     {
-        recursive_print_gron(element, path, nullptr);
+        recursive_print_gron(element, path, batched_out);
     }
     else if (path.data[processed] == '.')
     {
@@ -1103,11 +1108,11 @@ int main(int argc, char *argv[])
     {
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
-        gprint("json = [];\n", nullptr);
+        gprint("json = [];\n", batched_out);
         for (auto doc : docs)
         {
             growing_string path = growing_string("json[").append(to_string(index++)).append("]");
-            recursive_print_gron(doc, path, nullptr);
+            recursive_print_gron(doc, path, batched_out);
         }
     }
     // Execute as single document
@@ -1133,7 +1138,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            recursive_print_gron(val, path, nullptr);
+            recursive_print_gron(val, path, batched_out);
         }
     }
     batched_print_flush();

@@ -122,7 +122,7 @@ citylots.json can be downloaded here: https://github.com/zemirco/sf-city-lots-js
 
 ```
 time fastgron ~/Downloads/citylots.json > /dev/null
-fastgron ~/Downloads/citylots.json > /dev/null  0.39s user 0.07s system 99% cpu 0.465 total
+fastgron ~/Downloads/citylots.json > /dev/null  0.38s user 0.07s system 99% cpu 0.447 total
 
 time gron --no-sort ~/Downloads/citylots.json  >/dev/null
 gron --no-sort ~/Downloads/citylots.json > /dev/null  27.60s user 30.73s system 158% cpu 36.705 total
