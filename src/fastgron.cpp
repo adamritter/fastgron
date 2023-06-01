@@ -34,6 +34,8 @@ using namespace std;
 
 string out;
 
+bool semicolon = false;
+
 struct growing_string
 {
     std::vector<char> data;
@@ -263,7 +265,12 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     case ondemand::json_type::array:
     {
         size_t orig_base_len = path.size();
-        path.append(" = [];\n");
+        path.append(" = []");
+        if (semicolon)
+        {
+            path.append(';');
+        }
+        path.append('\n');
         gprint(path, out_growing_string);
         path.erase(orig_base_len);
         uint64_t index = 0;
@@ -284,7 +291,12 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     case ondemand::json_type::object:
     {
         size_t base_len = path.size();
-        path.append(" = {};\n");
+        path.append(" = {}");
+        if (semicolon)
+        {
+            path.append(';');
+        }
+        path.append('\n');
         gprint(path, out_growing_string);
         path.erase(base_len);
         if (sort_output)
@@ -358,7 +370,10 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         }
         memcpy(ptr, s.data(), s.size());
         ptr += s.size();
-        *ptr++ = ';';
+        if (semicolon)
+        {
+            *ptr++ = ';';
+        }
         *ptr++ = '\n';
         if (can_show(string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len])))
         {
@@ -381,7 +396,10 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         }
         memcpy(ptr, s.data(), s.size());
         ptr += s.size();
-        *ptr++ = ';';
+        if (semicolon)
+        {
+            *ptr++ = ';';
+        }
         *ptr++ = '\n';
         path.len = ptr - &path.data[0];
         gprint(path, out_growing_string);
@@ -393,11 +411,21 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         size_t base_len = path.size();
         if (element.get_bool())
         {
-            path.append(" = true;\n");
+            path.append(" = true");
+            if (semicolon)
+            {
+                path.append(';');
+            }
+            path.append('\n');
         }
         else
         {
-            path.append(" = false;\n");
+            path.append(" = false");
+            if (semicolon)
+            {
+                path.append(';');
+            }
+            path.append('\n');
         }
         gprint(path, out_growing_string);
         path.erase(base_len);
@@ -408,7 +436,12 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         if (element.is_null())
         {
             size_t base_len = path.size();
-            path.append(" = null;\n");
+            path.append(" = null");
+            if (semicolon)
+            {
+                path.append(';');
+            }
+            path.append('\n');
             gprint(path, out_growing_string);
             path.erase(base_len);
         }
@@ -429,7 +462,6 @@ struct options
     std::string filtered_path;
 };
 string root = "json";
-bool semicolon = false;
 
 string user_agent = "fastgron";
 bool no_indent = false;
@@ -522,6 +554,16 @@ options parse_options(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
             root = argv[++i];
+        }
+        else if (strcmp(argv[i], "--semicolon") == 0)
+        {
+            semicolon = true;
+        }
+
+        else if (argv[i][0] == '-')
+        {
+            cerr << "Unknown option: " << argv[i] << "\n";
+            exit(EXIT_FAILURE);
         }
         else
         {
@@ -747,8 +789,10 @@ void print_help()
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "                 -p is optional if path starts with . and file with that name doesn't exist\n"
         "  --no-indent   don't indent output\n"
-        "  --root        root path, default is json\n\n"
-        "Home page with more information: https://github.com/adamritter/fastgron\n";
+        "  --root        root path, default is json\n"
+        "  --semicolon   add semicolon to the end of each line\n"
+        "  --no-space   don't add space before and after =\n"
+        "\nHome page with more information: https://github.com/adamritter/fastgron\n";
 }
 
 void print_version()
