@@ -26,6 +26,11 @@ jobs:
           cmake ..
           cmake --build .
 
+      - name: Test
+        run: |
+          cd build
+          ctest --verbose
+
       - name: Rename binary
         run: |
           mv build/fastgron build/fastgron-ubuntu
@@ -56,6 +61,11 @@ jobs:
           cmake -G "MinGW Makefiles" ..
           cmake --build .
 
+      - name: Test
+        run: |
+          cd build
+          ctest --verbose
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -80,6 +90,11 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build .
+
+      - name: Test
+        run: |
+          cd build
+          ctest --verbose
 
       - name: Rename binary
         run: |
