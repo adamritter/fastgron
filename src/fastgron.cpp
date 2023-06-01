@@ -791,7 +791,6 @@ void print_help()
         "  --no-indent   don't indent output\n"
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
-        "  --no-space   don't add space before and after =\n"
         "\nHome page with more information: https://github.com/adamritter/fastgron\n";
 }
 

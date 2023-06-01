@@ -89,6 +89,7 @@ options:
                  -p is optional if path starts with . and file with that name doesn't exist
   --no-indent   don't indent output
   --root        root path, default is json
+  --semicolon   add semicolon to the end of each line
 ```
 
 The file name can be - or missing, in that case the data is read from stdin.
