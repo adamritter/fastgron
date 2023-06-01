@@ -40,23 +40,28 @@ include(CTest)
 # Add test
 enable_testing()
 
-add_test(version_test COMMAND sh -c "${CMAKE_CURRENT_BINARY_DIR}/fastgron -V 2>&1")
-set_tests_properties(version_test PROPERTIES PASS_REGULAR_EXPRESSION "fastgron version ${FASTGRON_VERSION}")
+# Use bash for testing
+find_program(BASH_PROGRAM bash)
 
-add_test(array_test COMMAND sh -c "echo '{\"a\":[1,2,3]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
-set_tests_properties(array_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a\\[1\\] = 2;\\njson.a\\[2\\] = 3;")
+if(BASH_PROGRAM)
+    add_test(version_test ${BASH_PROGRAM} -c "${CMAKE_CURRENT_BINARY_DIR}/fastgron -V 2>&1")
+    set_tests_properties(version_test PROPERTIES PASS_REGULAR_EXPRESSION "fastgron version ${FASTGRON_VERSION}")
 
-add_test(map_test COMMAND sh -c "echo '{\"a\":{\"c\":1,\"b\":2}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
-set_tests_properties(map_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.c = 1;\\njson.a.b = 2;")
+    add_test(array_test ${BASH_PROGRAM} -c "echo '{\"a\":[1,2,3]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
+    set_tests_properties(array_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a\\[1\\] = 2;\\njson.a\\[2\\] = 3;")
 
-add_test(sort_map_test COMMAND sh -c "echo '{\"a\":{\"c\":1,\"b\":2}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --sort")
-set_tests_properties(sort_map_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.b = 2;\\njson.a.c = 1;")
+    add_test(map_test ${BASH_PROGRAM} -c "echo '{\"a\":{\"c\":1,\"b\":2}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
+    set_tests_properties(map_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.c = 1;\\njson.a.b = 2;")
 
-add_test(filter_fixed_string_text COMMAND sh -c "echo '{\"a\":[5,4,3,1]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -F 1")
-set_tests_properties(filter_fixed_string_text PROPERTIES PASS_REGULAR_EXPRESSION "json.a\\[1\\] = 4;\\njson.a\\[3\\] = 1;")
+    add_test(sort_map_test ${BASH_PROGRAM} -c "echo '{\"a\":{\"c\":1,\"b\":2}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --sort")
+    set_tests_properties(sort_map_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.b = 2;\\njson.a.c = 1;")
 
-add_test(sort_and_filter_test COMMAND sh -c "echo '{\"a\":{\"c\":13,\"b\":22,\"a\":31}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --sort -F 3")
-set_tests_properties(sort_and_filter_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.a = 31;\\njson.a.c = 13;")
+    add_test(filter_fixed_string_text ${BASH_PROGRAM} -c "echo '{\"a\":[5,4,3,1]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -F 1")
+    set_tests_properties(filter_fixed_string_text PROPERTIES PASS_REGULAR_EXPRESSION "json.a\\[1\\] = 4;\\njson.a\\[3\\] = 1;")
 
-add_test(root_test COMMAND sh -c "echo '[1,2,3]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --root a")
-set_tests_properties(root_test PROPERTIES PASS_REGULAR_EXPRESSION "a\\[1\\] = 2;\\na\\[2\\] = 3;")
+    add_test(sort_and_filter_test ${BASH_PROGRAM} -c "echo '{\"a\":{\"c\":13,\"b\":22,\"a\":31}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --sort -F 3")
+    set_tests_properties(sort_and_filter_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.a = 31;\\njson.a.c = 13;")
+
+    add_test(root_test ${BASH_PROGRAM} -c "echo '[1,2,3]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --root a")
+    set_tests_properties(root_test PROPERTIES PASS_REGULAR_EXPRESSION "a\\[1\\] = 2;\\na\\[2\\] = 3;")
+endif(BASH_PROGRAM)
