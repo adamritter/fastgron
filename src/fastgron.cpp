@@ -345,8 +345,9 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     {
         size_t orig_out_len = out_growing_string.size();
         out_growing_string.reserve_extra(100);
-        memcpy(&out_growing_string.data[orig_out_len], &*path.data.begin(), path.size());
         char *ptr = &out_growing_string.data[orig_out_len];
+        memcpy(ptr, &*path.data.begin(), path.size());
+        ptr += path.size();
         *ptr++ = ' ';
         *ptr++ = '=';
         *ptr++ = ' ';
@@ -359,7 +360,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         ptr += s.size();
         *ptr++ = ';';
         *ptr++ = '\n';
-        if (can_show(out_growing_string.view()))
+        if (can_show(string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len])))
         {
             out_growing_string.len = ptr - &out_growing_string.data[0];
         }
@@ -427,6 +428,7 @@ struct options
     bool ungron;
     std::string filtered_path;
 };
+string root = "json";
 
 string user_agent = "fastgron/0.3.x";
 bool no_indent = false;
@@ -511,9 +513,18 @@ options parse_options(int argc, char *argv[])
             }
             opts.filtered_path = argv[++i];
         }
+        else if (strcmp(argv[i], "--root") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                cerr << "Missing argument for --root\n";
+                exit(EXIT_FAILURE);
+            }
+            root = argv[++i];
+        }
         else
         {
-            if (access(argv[i], F_OK) == -1)
+            if (access(argv[i], F_OK) == -1 && argv[i] != string("-"))
             {
                 // Treat strings starting with . as paths
                 if (argv[i][0] == '.')
@@ -734,7 +745,8 @@ void print_help()
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "                 -p is optional if path starts with . and file with that name doesn't exist\n"
-        "  --no-indent   don't indent output\n\n"
+        "  --no-indent   don't indent output\n"
+        "  --root        root path, default is json\n\n"
         "Home page with more information: https://github.com/adamritter/fastgron\n";
 }
 
@@ -841,9 +853,9 @@ std::string download(std::string url)
 
 void print_filtered_path(growing_string &path, int processed, ondemand::value element)
 {
-    if (processed == 0 && path.starts_with("json"))
+    if (processed == 0 && path.starts_with(root))
     {
-        processed = 4;
+        processed = root.size();
     }
     if (path.size() == processed)
     {
@@ -1087,9 +1099,9 @@ int main(int argc, char *argv[])
                 data = end + 1;
                 continue;
             }
-            if (line.starts_with("json"))
+            if (line.starts_with(root))
             {
-                data = data + 4;
+                data = data + root.size();
             }
             parse_json(string_view(data, end - data), builder);
             data = end + 1;
@@ -1112,10 +1124,10 @@ int main(int argc, char *argv[])
     {
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
-        gprint("json = [];\n", batched_out);
+        gprint(root + " = [];\n", batched_out);
         for (auto doc : docs)
         {
-            growing_string path = growing_string("json[").append(to_string(index++)).append("]");
+            growing_string path = growing_string(root).append("[").append(to_string(index++)).append("]");
             recursive_print_gron(doc, path, batched_out);
         }
     }
@@ -1124,10 +1136,10 @@ int main(int argc, char *argv[])
     {
         ondemand::document doc = parser.iterate(json);
         ondemand::value val = doc;
-        growing_string path("json");
+        growing_string path(root);
         if (!opts.filtered_path.empty())
         {
-            if (opts.filtered_path.starts_with("json"))
+            if (opts.filtered_path.starts_with(root))
             {
                 path.erase(0);
             }

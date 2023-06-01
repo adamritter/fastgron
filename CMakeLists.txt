@@ -57,3 +57,6 @@ set_tests_properties(filter_fixed_string_text PROPERTIES PASS_REGULAR_EXPRESSION
 
 add_test(sort_and_filter_test COMMAND sh -c "echo '{\"a\":{\"c\":13,\"b\":22,\"a\":31}}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --sort -F 3")
 set_tests_properties(sort_and_filter_test PROPERTIES PASS_REGULAR_EXPRESSION "json.a.a = 31;\\njson.a.c = 13;")
+
+add_test(root_test COMMAND sh -c "echo '[1,2,3]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron --root a")
+set_tests_properties(root_test PROPERTIES PASS_REGULAR_EXPRESSION "a\\[1\\] = 2;\\na\\[2\\] = 3;")
