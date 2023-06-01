@@ -96,7 +96,7 @@ The file name can be - or missing, in that case the data is read from stdin.
 ## JSON lines (-s or --stream)
 
 ```fastgron testdata/stream.json -s
-json = []
+json = [];
 json[0] = {};
 json[0].one = 1;
 json[0].two = 2;
