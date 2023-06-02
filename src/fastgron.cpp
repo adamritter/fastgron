@@ -686,7 +686,11 @@ void print_json(Builder builder)
     }
 }
 // Parse .hello[3]["asdf"] = 3.14; into builder
-void parse_json(string_view line, Builder &builder)
+vector<Builder *> parse_json_builders;
+vector<int> parse_json_builder_offsets;
+
+// BUG: ["..."] is not handled
+void parse_json(string_view line, Builder &builder, int offset)
 {
     if (line.empty())
     {
@@ -712,7 +716,9 @@ void parse_json(string_view line, Builder &builder)
         {
             child = map_alt.emplace(key, string_variant()).first;
         }
-        parse_json(line.substr(end), child->second);
+        parse_json_builders.push_back(&child->second);
+        parse_json_builder_offsets.emplace_back(offset + end);
+        parse_json(line.substr(end), child->second, offset + end);
     }
     else if (line[0] == '[' && isdigit(line[1]))
     {
@@ -735,7 +741,9 @@ void parse_json(string_view line, Builder &builder)
         {
             vector_alt.resize(index + 1);
         }
-        parse_json(line.substr(end), vector_alt[index]);
+        parse_json_builders.push_back(&vector_alt[index]);
+        parse_json_builder_offsets.emplace_back(offset + end);
+        parse_json(line.substr(end), vector_alt[index], offset + end);
     }
     else if (line[0] == '=' || (line[0] == ' ' && line[1] == '='))
     {
@@ -1130,6 +1138,7 @@ int main(int argc, char *argv[])
     {
         Builder builder;
         char *data = json.data();
+        string_view last_line = "";
         while (data < json.data() + json.size())
         {
             char *end = data;
@@ -1137,17 +1146,35 @@ int main(int argc, char *argv[])
             {
                 end++;
             }
-            string_view line = string_view(data, end - data);
-            if (!can_show(line))
+            string_view line_orig = string_view(data, end - data);
+            if (!can_show(line_orig))
             {
                 data = end + 1;
                 continue;
             }
-            if (line.starts_with(root))
+            if (line_orig.starts_with(root))
             {
                 data = data + root.size();
             }
-            parse_json(string_view(data, end - data), builder);
+            string_view line = string_view(data, end - data);
+            // find commonality with last line
+            int common = 0;
+            while (common < line.size() && common < last_line.size() && line[common] == last_line[common])
+            {
+                common++;
+            }
+            int index = 0;
+            while (index < parse_json_builder_offsets.size() && parse_json_builder_offsets[index] <= common)
+            {
+                index++;
+            }
+            parse_json_builders.erase(parse_json_builders.begin() + index, parse_json_builders.end());
+            parse_json_builder_offsets.erase(parse_json_builder_offsets.begin() + index, parse_json_builder_offsets.end());
+            Builder &passed_builder = parse_json_builders.empty() ? builder : *parse_json_builders.back();
+            int offset = parse_json_builders.empty() ? 0 : parse_json_builder_offsets.back();
+            parse_json(line.substr(offset), passed_builder, offset);
+            // parse_json(line, builder, 0);
+            last_line = line;
             data = end + 1;
         }
         if (std::holds_alternative<string_variant>(builder) && std::get<string_variant>(builder) == "")
