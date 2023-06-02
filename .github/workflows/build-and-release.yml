@@ -34,7 +34,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep ${{ github.ref }}
+          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
 
       - name: Rename binary
         run: |
@@ -74,7 +74,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep ${{ github.ref }}
+          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -109,7 +109,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep ${{ github.ref }}
+          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
 
       - name: Rename binary
         run: |
