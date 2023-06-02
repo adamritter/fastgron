@@ -34,7 +34,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
+          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
 
       - name: Rename binary
         run: |
@@ -71,11 +71,6 @@ jobs:
           cd build
           ctest --verbose
 
-      - name: Check tag version
-        run: |
-          cd build
-          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
-
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -109,7 +104,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/v//'`
+          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
 
       - name: Rename binary
         run: |
