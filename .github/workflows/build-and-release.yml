@@ -34,7 +34,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
+          ./fastgron --version 2>&1 | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
 
       - name: Rename binary
         run: |
@@ -104,7 +104,7 @@ jobs:
       - name: Check tag version
         run: |
           cd build
-          ./fastgron --version | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
+          ./fastgron --version 2>&1 | grep `echo ${{ github.ref }} | sed 's/refs\/tags\/v//'`
 
       - name: Rename binary
         run: |
