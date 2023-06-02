@@ -150,3 +150,13 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GH_PAT }}
+
+  homebrew:
+    needs: [build-linux, build-windows, build-mac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mislav/bump-homebrew-formula-action@v2
+        with:
+          formula-name: fastgron
+        env:
+          COMMITTER_TOKEN: ${{ secrets.GH_PAT }}
