@@ -466,6 +466,14 @@ string root = "json";
 string user_agent = "fastgron";
 bool no_indent = false;
 
+bool is_url(string_view url)
+{
+    if (url.starts_with("http://") || url.starts_with("https://"))
+    {
+        return true;
+    }
+    return false;
+}
 options parse_options(int argc, char *argv[])
 {
     options opts;
@@ -567,7 +575,7 @@ options parse_options(int argc, char *argv[])
         }
         else
         {
-            if (access(argv[i], F_OK) == -1 && argv[i] != string("-"))
+            if (!is_url(argv[i]) && access(argv[i], F_OK) == -1 && argv[i] != string("-"))
             {
                 // Treat strings starting with . as paths
                 if (argv[i][0] == '.')
@@ -902,7 +910,6 @@ std::string download(std::string url)
     exit(EXIT_FAILURE);
 #endif
 }
-
 void print_filtered_path(growing_string &path, int processed, ondemand::value element)
 {
     if (processed == 0 && path.starts_with(root))
