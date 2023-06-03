@@ -45,6 +45,7 @@ Ubuntu Linux, Windows: Download the latest binary from [releases](https://github
 Warning: On Windows libcurl support is missing from the released binary, so http / https URLs can't yet be read directly
 
 Arch Linux:
+
 ```bash
 yay -S fastgron-git
 ```
@@ -186,15 +187,27 @@ To build and run this project, you need:
 
 Here are the steps to build, test, and install `fastgron`:
 
-   ```bash
-   apt install cmake clang libcurl4-openssl-dev libssl-dev zlib1g-dev
-   git clone https://github.com/adamritter/fastgron.git
-   cd fastgron
-   cmake -B build  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ && cmake --build build
-   cmake install build/
-   ```
+```bash
+apt install cmake clang libcurl4-openssl-dev libssl-dev zlib1g-dev
+git clone https://github.com/adamritter/fastgron.git
+cd fastgron
+cmake -B build  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ && cmake --build build
+cmake install build/
+```
 
-## TODO
+## Future development ideas:
 
 - Only color terminal support is missing from GRON
-- Paths: Implement path autocompletition, \* / ?, \.
+- Paths: Implement more complex path queries:
+  using \*, [] similar to jq, multiple options using {},
+  filters similar to jq, but trying to still just go through the data in a streaming fashion to keep things fast.
+  for example path rewriting, like | {name: author.name, ...} should be possible without needing to parse the data structure in memory
+- memory mapping would be great, but it depends on the underlying SIMDJSON library not needing padding.
+- CSV support would probably be helpful (using csv2 header only library for example), as there are some big CSV files out there.
+  toml / yaml support is not out of the question, but I don't know about people using it in general
+- multiple file support would probably be great, which would make it easy to merge multiple files (especially with giving
+  different --root values to different files)
+- changing value of fixed paths is also an option, it can probably be integrated within the path expression parser
+- after the filters get useful enough, directly outputting JSON is also an option, it can be much faster than gron and then ungron
+  together, as there's no need to build up maps of values
+- for streaming / ndjson, multi-threaded implementation should be used
