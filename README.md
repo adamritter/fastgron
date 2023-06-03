@@ -154,6 +154,20 @@ time gron -u citylots.gson > c3.json
 gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 total
 ```
 
+Path finding speed:
+
+```bash
+> time jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json
+"091"
+jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json  2.91s user 0.28s system 97% cpu 3.252 total
+> time jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
+"091"
+jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.87s user 0.71s system 161% cpu 0.972 total
+> time build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
+json.features[10000].properties.LOT_NUM = "091"
+build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.07s user 0.10s system 95% cpu 0.176 total
+```
+
 ## Installation
 
 To build and run this project, you need:
