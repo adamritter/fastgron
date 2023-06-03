@@ -154,7 +154,7 @@ time gron -u citylots.gson > c3.json
 gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 total
 ```
 
-Path finding speed:
+Path finding is 18x faster than jq and 5x faster than jj:
 
 ```bash
 > time jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json
