@@ -34,14 +34,15 @@ fastgron can work backwards too, enabling you to turn your filtered data back in
 
 ## Quick Install
 
-MacOS, Linux:
+MacOS:
 
 ```bash
 brew install fastgron
 ```
 
-Windows: Download from [release](https://github.com/adamritter/fastgron/releases/tag/v0.1.8)
-libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
+Linux, Windows: Download from [releases](https://github.com/adamritter/fastgron/releases)
+
+Warning: libcurl support is missing from the released binary, so http / https URLs can't yet be read directly on Windows
 
 ## Usage
 
