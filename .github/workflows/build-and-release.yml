@@ -26,6 +26,37 @@ jobs:
           cmake ..
           cmake --build .
 
+      - name: Rename binary
+        run: |
+          mv build/fastgron build/fastgron-ubuntu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: fastgron-ubuntu
+          path: build/fastgron-ubuntu
+
+  build-linux-without-simd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install CURL
+        run: sudo apt-get install libcurl4-openssl-dev
+      - name: Install OpenSSL
+        run: sudo apt-get install libssl-dev
+      - name: Install ZLIB  (for libcurl)
+        run: sudo apt-get install zlib1g-dev
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+
       - name: Test
         run: |
           cd build
@@ -38,16 +69,44 @@ jobs:
 
       - name: Rename binary
         run: |
-          mv build/fastgron build/fastgron-ubuntu
+          mv build/fastgron build/fastgron-ubuntu-without-simd
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: fastgron-ubuntu
-          path: build/fastgron-ubuntu
+          name: fastgron-ubuntu-without-simd
+          path: build/fastgron-ubuntu-without-simd
 
   build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: choco install -y mingw
+
+      - name: Install CURL
+        run: choco install -y curl
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" ..
+          cmake --build .
+        env:
+          CXX_ARCH_FLAGS: -march=icelake-client
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: fastgron-windows
+          path: build/fastgron.exe
+
+  build-windows-without-simd:
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -75,8 +134,8 @@ jobs:
         uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: fastgron-windows
-          path: build/fastgron.exe
+          name: fastgron-windows-without-simd
+          path: build/fastgron-without-simd.exe
 
   build-mac:
     runs-on: macos-latest
@@ -118,7 +177,14 @@ jobs:
           path: build/fastgron-mac
 
   release:
-    needs: [build-linux, build-windows, build-mac]
+    needs:
+      [
+        build-linux,
+        build-windows,
+        build-mac,
+        build-linux-without-simd,
+        build-windows-without-simd,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -147,7 +213,14 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
   homebrew:
-    needs: [build-linux, build-windows, build-mac]
+    needs:
+      [
+        build-linux,
+        build-windows,
+        build-mac,
+        build-linux-without-simd,
+        build-windows-without-simd,
+      ]
     runs-on: ubuntu-latest
     steps:
       - uses: mislav/bump-homebrew-formula-action@v2
