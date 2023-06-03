@@ -198,17 +198,17 @@ cmake install build/
 ## Future development ideas:
 
 - Only color terminal support is missing from GRON
-- Paths: Implement more complex path queries:
-  using \*, [] similar to jq, multiple options using {},
-  filters similar to jq, but trying to still just go through the data in a streaming fashion to keep things fast.
-  for example path rewriting, like | {name: author.name, ...} should be possible without needing to parse the data structure in memory
+- Paths: Implement more complex path queries: using \*, [] , multiple exlusive paths using {}. {} also could be extended for allowing
+    simple path renaming and value setting, like {.name:.author.name,.address:.author.address,is_person:true}
+- Path autocompletion is much better with gron type paths than js style functions, the code should take advantage of it
 - memory mapping would be great, but it depends on the underlying SIMDJSON library not needing padding.
 - CSV support would probably be helpful (using csv2 header only library for example), as there are some big CSV files out there.
   toml / yaml support is not out of the question, but I don't know about people using it in general
 - multiple file support would probably be great, which would make it easy to merge multiple files (especially with giving
   different --root values to different files)
-- changing value of fixed paths is also an option, it can probably be integrated within the path expression parser
 - after the filters get useful enough, directly outputting JSON is also an option, it can be much faster than gron and then ungron
   together, as there's no need to build up maps of values
 - for streaming / ndjson, multi-threaded implementation should be used
 - the code should be accessible as a library as well, especially when it gets more powerful
+- simply appending GRON code, like setting some paths/values maybe a useful simple feature
+- A fastjq implementation could be created from the learnings of this project
