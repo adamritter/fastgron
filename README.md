@@ -40,9 +40,14 @@ MacOS:
 brew install fastgron --build-from-source
 ```
 
-Linux, Windows: Download the latest binary from [releases](https://github.com/adamritter/fastgron/releases)
+Ubuntu Linux, Windows: Download the latest binary from [releases](https://github.com/adamritter/fastgron/releases)
 
 Warning: On Windows libcurl support is missing from the released binary, so http / https URLs can't yet be read directly
+
+Arch Linux:
+```bash
+yay -S fastgron-git
+```
 
 ## Usage
 
