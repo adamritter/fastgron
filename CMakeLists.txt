@@ -11,7 +11,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/version.h.in ${CMAKE_CURRENT_
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g $ENV{CXX_ARCH_FLAGS}")
 
 # Include your source files here
 add_executable(fastgron

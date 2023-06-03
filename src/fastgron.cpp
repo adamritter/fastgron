@@ -474,6 +474,14 @@ bool is_url(string_view url)
     }
     return false;
 }
+
+void print_simdjson_version()
+{
+    cerr << "simdjson v" << SIMDJSON_VERSION << endl;
+    cerr << "  Detected the best implementation for your machine: " << simdjson::get_active_implementation()->name();
+    cerr << "(" << simdjson::get_active_implementation()->description() << ")" << endl;
+}
+
 options parse_options(int argc, char *argv[])
 {
     options opts;
@@ -502,6 +510,11 @@ options parse_options(int argc, char *argv[])
         {
             opts.version = true;
             break; // No need to process further arguments
+        }
+        else if (strcmp(argv[i], "--simdjson-version") == 0)
+        {
+            print_simdjson_version();
+            exit(EXIT_SUCCESS);
         }
         else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
         {
@@ -812,7 +825,6 @@ void print_help()
 
 void print_version()
 {
-
     cerr << "fastgron version " << FASTGRON_VERSION << "\n";
 }
 

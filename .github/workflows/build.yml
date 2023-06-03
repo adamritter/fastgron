@@ -21,6 +21,8 @@ jobs:
           cd build
           cmake ..
           cmake --build . --verbose
+        env:
+          CXX_ARCH_FLAGS: -march=icelake-client
 
       - name: Test
         run: |
@@ -65,6 +67,8 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build . --verbose
+        env:
+          CXX_ARCH_FLAGS: -march=armv8
 
       - name: Test
         run: |
