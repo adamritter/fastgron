@@ -990,7 +990,12 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
             auto child = element.at(index);
             if (child.error() == SUCCESS)
             {
-                print_filtered_path(path, end, child.value());
+                growing_string path2 = path.view().substr(0, processed);
+                path2.append("[");
+                path2.append(key);
+                path2.append("]");
+                path2.append(path.view().substr(end));
+                print_filtered_path(path2, end + 1, child.value());
             }
             else
             {
@@ -1228,7 +1233,6 @@ int main(int argc, char *argv[])
             }
             path.append(opts.filtered_path);
             print_filtered_path(path, 0, val);
-            return EXIT_SUCCESS;
         }
         else
         {
