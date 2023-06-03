@@ -109,6 +109,8 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build . --verbose
+        env:
+          CXX_ARCH_FLAGS: -arch x86_64 -arch arm64
 
       - name: Test
         run: |
