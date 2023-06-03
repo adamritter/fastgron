@@ -177,33 +177,16 @@ To build and run this project, you need:
 - [CMake](https://cmake.org/) (version 3.8 or higher)
 - libcurl installed (Optional)
 
-## Building and Installation
+## Building and Installation for Linux
 
 Here are the steps to build, test, and install `fastgron`:
 
-1. Clone this repository:
    ```bash
+   apt install cmake clang libcurl4-openssl-dev libssl-dev zlib1g-dev
    git clone https://github.com/adamritter/fastgron.git
-   ```
-2. Move into the project directory:
-   ```bash
    cd fastgron
-   ```
-3. Make a new directory for building:
-   ```bash
-   mkdir build && cd build
-   ```
-4. Generate Makefile using CMake:
-   ```bash
-   cmake ..
-   ```
-5. Build the project:
-   ```bash
-   make
-   ```
-6. To install, use the following command:
-   ```bash
-   sudo make install
+   cmake -B build  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ && cmake --build build
+   cmake install build/
    ```
 
 ## TODO
