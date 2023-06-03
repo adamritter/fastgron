@@ -24,12 +24,54 @@ jobs:
         env:
           CXX_ARCH_FLAGS: -march=icelake-client
 
+  build-linux-without-simd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install CURL
+        run: sudo apt-get install libcurl4-openssl-dev
+      - name: Install OpenSSL
+        run: sudo apt-get install libssl-dev
+      - name: Install ZLIB  (for libcurl)
+        run: sudo apt-get install zlib1g-dev
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --verbose
+
       - name: Test
         run: |
           cd build
           ctest --verbose
 
   build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: choco install -y mingw
+
+      - name: Install CURL
+        run: |
+          choco install -y curl
+          # vcpkg install curl:x64-windows-static
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" ..
+          cmake --build . --verbose
+        env:
+          CXX_ARCH_FLAGS: -march=icelake-client
+
+  build-windows-without-simd:
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -67,8 +109,6 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
           cmake --build . --verbose
-        env:
-          CXX_ARCH_FLAGS: -march=armv8
 
       - name: Test
         run: |
