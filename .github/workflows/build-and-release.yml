@@ -204,7 +204,9 @@ jobs:
         with:
           files: |
             fastgron-windows/fastgron.exe
+            fastgron-windows-without-simd/fastgron-without-simd.exe
             fastgron-ubuntu/fastgron-ubuntu
+            fastgron-ubuntu-without-simd/fastgron-ubuntu-without-simd
             fastgron-mac/fastgron-mac
 
           tag_name: ${{ github.ref }}
