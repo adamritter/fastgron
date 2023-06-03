@@ -211,3 +211,4 @@ cmake install build/
 - after the filters get useful enough, directly outputting JSON is also an option, it can be much faster than gron and then ungron
   together, as there's no need to build up maps of values
 - for streaming / ndjson, multi-threaded implementation should be used
+- the code should be accessible as a library as well, especially when it gets more powerful
