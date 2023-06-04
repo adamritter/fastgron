@@ -97,6 +97,9 @@ options:
   --no-indent   don't indent output
   --root        root path, default is json
   --semicolon   add semicolon to the end of each line
+  --no-spaces   don't add spaces around =
+  -c, --color   colorize output
+  --no-color    don't colorize output
 ```
 
 The file name can be - or missing, in that case the data is read from stdin.
@@ -197,9 +200,8 @@ cmake install build/
 
 ## Future development ideas:
 
-- Only color terminal support is missing from GRON
 - Paths: Implement more complex path queries: using \*, [] , multiple exlusive paths using {}. {} also could be extended for allowing
-    simple path renaming and value setting, like {.name:.author.name,.address:.author.address,is_person:true}
+  simple path renaming and value setting, like {.name:.author.name,.address:.author.address,is_person:true}
 - Path autocompletion is much better with gron type paths than js style functions, the code should take advantage of it
 - memory mapping would be great, but it depends on the underlying SIMDJSON library not needing padding.
 - CSV support would probably be helpful (using csv2 header only library for example), as there are some big CSV files out there.
