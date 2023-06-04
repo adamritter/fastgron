@@ -42,69 +42,102 @@ bool invert_match = false;
 // bool no_spaces = false;
 const unsigned SPACES = 1;
 const unsigned SEMICOLON = 2;
+const unsigned COLOR = 4;
 unsigned flags = SPACES;
-
 struct growing_string
 {
-    std::vector<char> data;
+    char *data;
     size_t len = 0;
-    growing_string() : data(1000) {}
+    size_t capacity;
+
+    growing_string() : capacity(1000)
+    {
+        data = new char[capacity];
+    }
+
     bool starts_with(string_view s) const
     {
         if (s.size() > len)
         {
             return false;
         }
-        return memcmp(data.data(), s.data(), s.size()) == 0;
+        return memcmp(data, s.data(), s.size()) == 0;
     }
-    growing_string(string_view s) : data(s.size() + 100)
+
+    growing_string(string_view s) : capacity(s.size() + 100)
     {
-        memcpy(data.data(), s.data(), s.size());
+        data = new char[capacity];
+        memcpy(data, s.data(), s.size());
         len = s.size();
     }
-    growing_string(const char *s) : data(s, s + strlen(s)), len(strlen(s)) {}
+
+    growing_string(const char *s) : capacity(strlen(s)), len(strlen(s))
+    {
+        data = new char[capacity];
+        memcpy(data, s, len);
+    }
+
+    ~growing_string()
+    {
+        delete[] data;
+    }
     void reserve_extra(size_t extra)
     {
-        if (len + extra > data.size())
+        if (len + extra > capacity)
         {
-            data.resize(len + extra);
+            capacity = max(capacity * 2, len + extra);
+            char *new_data = new char[capacity];
+            memcpy(new_data, data, len);
+            delete[] data;
+            data = new_data;
         }
     }
+
     string_view view() const
     {
-        return std::string_view(data.data(), len);
+        return std::string_view(data, len);
     }
 
     growing_string &append(string_view s)
     {
         reserve_extra(s.size());
-        memcpy(data.data() + len, s.data(), s.size());
+        memcpy(data + len, s.data(), s.size());
         len += s.size();
         return *this;
     }
+
     growing_string &append(char c)
     {
         reserve_extra(1);
         data[len++] = c;
         return *this;
     }
+
     growing_string &erase(size_t newlen)
     {
-        len = newlen;
+        if (newlen <= len)
+        {
+            len = newlen;
+        }
         return *this;
     }
+
     inline size_t size() const
     {
         return len;
     }
+
     operator string_view() const
     {
-        return {data.data(), len};
+        return {data, len};
     }
+
     void clear_mem()
     {
         len = 0;
-        data.clear();
+        delete[] data;
+        capacity = 0;
+        data = nullptr;
     }
 };
 
@@ -388,7 +421,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         size_t path_size = path.size();
         out_growing_string.reserve_extra(path_size + orig_out_len + 20);
         char *ptr = &out_growing_string.data[orig_out_len];
-        memcpy(ptr, &*path.data.begin(), path_size);
+        memcpy(ptr, path.data, path_size);
         ptr += path_size;
         ptr = print_equals(ptr, flags);
         string_view s = element.raw_json_token();
@@ -545,6 +578,14 @@ options parse_options(int argc, char *argv[])
         else if (strcmp(argv[i], "--no-spaces") == 0)
         {
             flags &= ~SPACES;
+        }
+        else if (strcmp(argv[i], "--color") == 0)
+        {
+            flags |= COLOR;
+        }
+        else if (strcmp(argv[i], "--no-color") == 0)
+        {
+            flags &= ~COLOR;
         }
         else if (argv[i][0] == '-')
         {
@@ -1084,6 +1125,10 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
 
 int main(int argc, char *argv[])
 {
+    if (isatty(1))
+    {
+        flags |= COLOR;
+    }
     ondemand::parser parser;
 
     options opts = parse_options(argc, argv);
@@ -1216,6 +1261,10 @@ int main(int argc, char *argv[])
         {
             recursive_print_gron(val, path, batched_out, flags);
         }
+    }
+    if (flags & COLOR)
+    {
+        batched_print("\033[0m");
     }
     batched_print_flush();
 
