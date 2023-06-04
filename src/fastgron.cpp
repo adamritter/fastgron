@@ -43,6 +43,7 @@ bool invert_match = false;
 const unsigned SPACES = 1;
 const unsigned SEMICOLON = 2;
 const unsigned COLOR = 4;
+const unsigned COLORIZE_MATCHES = 8;
 unsigned flags = SPACES;
 struct growing_string
 {
@@ -1227,6 +1228,7 @@ int main(int argc, char *argv[])
     if ((flags | COLOR) && filters.size() > 0)
     {
         flags &= ~COLOR; // Can't search in colorized text
+        flags |= COLORIZE_MATCHES;
     }
 
     padded_string json;
@@ -1337,10 +1339,6 @@ int main(int argc, char *argv[])
         {
             recursive_print_gron(val, path, batched_out, flags);
         }
-    }
-    if (flags & COLOR)
-    {
-        batched_print("\033[0m");
     }
     batched_print_flush();
 
