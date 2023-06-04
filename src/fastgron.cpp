@@ -286,11 +286,47 @@ bool can_show(string_view s)
     return true;
 }
 
+growing_string &colorize_matches(string_view s)
+{
+    static growing_string out;
+    out.clear_mem();
+    out.reserve_extra(s.size() + 100);
+    while (s.size() > 0)
+    {
+        size_t pos = 0;
+        size_t len = 0;
+        for (auto match : filters)
+        {
+            size_t pos2 = s.find(match, 0);
+            if (pos2 != string_view::npos)
+            {
+                pos = pos2;
+                len = match.size();
+            }
+        }
+        if (pos == 0)
+        {
+            out.append(s);
+            break;
+        }
+        out.append(s.substr(0, pos));
+        out.append("\033[1;31m");
+        out.append(s.substr(pos, len));
+        out.append("\033[0m");
+        s = s.substr(pos + len);
+    }
+    return out;
+}
+
 void gprint(string_view s, growing_string &out_growing_string)
 {
     if (!can_show(s))
     {
         return;
+    }
+    if (flags & COLORIZE_MATCHES)
+    {
+        s = colorize_matches(s);
     }
     out_growing_string.append(s);
 }
@@ -507,9 +543,18 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
             *ptr++ = ';';
         }
         *ptr++ = '\n';
-        if (can_show(string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len])))
+        string_view ss = string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len]);
+        if (can_show(ss))
         {
-            out_growing_string.len = ptr - &out_growing_string.data[0];
+            if (flags & COLORIZE_MATCHES)
+            {
+                ss = colorize_matches(ss);
+                out_growing_string.append(ss);
+            }
+            else
+            {
+                out_growing_string.len = ptr - &out_growing_string.data[0];
+            }
         }
         break;
     }
@@ -650,7 +695,7 @@ options parse_options(int argc, char *argv[])
         {
             flags &= ~SPACES;
         }
-        else if (strcmp(argv[i], "--color") == 0)
+        else if (strcmp(argv[i], "--color") == 0 || strcmp(argv[i], "-c") == 0)
         {
             flags |= COLOR;
         }
@@ -898,8 +943,8 @@ void print_help()
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
         "  --no-spaces   don't add spaces around =\n"
-        "  --color       add color to output\n"
-        "  --no-color    don't add color to output\n"
+        "  -c, --color   colorize output\n"
+        "  --no-color    don't colorize output\n"
         "\nHome page with more information: https://github.com/adamritter/fastgron\n";
 }
 
@@ -1225,7 +1270,7 @@ int main(int argc, char *argv[])
         print_version();
         return 0;
     }
-    if ((flags | COLOR) && filters.size() > 0)
+    if ((flags & COLOR) && filters.size() > 0)
     {
         flags &= ~COLOR; // Can't search in colorized text
         flags |= COLORIZE_MATCHES;
