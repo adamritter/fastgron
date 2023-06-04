@@ -34,7 +34,15 @@ using namespace std;
 
 string out;
 
-bool semicolon = false;
+vector<string> filters;
+bool ignore_case = false;
+bool sort_output = false;
+bool invert_match = false;
+// bool semicolon = false;
+// bool no_spaces = false;
+const unsigned SPACES = 1;
+const unsigned SEMICOLON = 2;
+unsigned flags = SPACES;
 
 struct growing_string
 {
@@ -85,7 +93,7 @@ struct growing_string
         len = newlen;
         return *this;
     }
-    size_t size() const
+    inline size_t size() const
     {
         return len;
     }
@@ -99,6 +107,8 @@ struct growing_string
         data.clear();
     }
 };
+
+growing_string batched_out;
 
 void write_all(string_view s)
 {
@@ -114,8 +124,6 @@ void write_all(string_view s)
         written += w;
     }
 }
-
-growing_string batched_out;
 
 void batched_print_flush()
 {
@@ -199,11 +207,6 @@ inline int raw_json_string_length(const ondemand::raw_json_string &str)
     }
 }
 
-vector<string> filters;
-bool ignore_case = false;
-bool sort_output = false;
-bool invert_match = false;
-
 char fast_tolower(char c)
 {
     if (c >= 'A' && c <= 'Z')
@@ -258,15 +261,35 @@ void gprint(string_view s, growing_string &out_growing_string)
     out_growing_string.append(s);
 }
 
-void recursive_print_gron(ondemand::value element, growing_string &path, growing_string &out_growing_string)
+inline char *print_equals(char *ptr, const unsigned flags)
+{
+    if (flags & SPACES)
+    {
+        *ptr++ = ' ';
+        *ptr++ = '=';
+        *ptr++ = ' ';
+    }
+    else
+    {
+        *ptr++ = '=';
+    }
+    return ptr;
+}
+
+void recursive_print_gron(ondemand::value element, growing_string &path, growing_string &out_growing_string,
+                          const unsigned flags)
 {
     switch (element.type())
     {
     case ondemand::json_type::array:
     {
         size_t orig_base_len = path.size();
-        path.append(" = []");
-        if (semicolon)
+        if (flags & SPACES)
+            path.append(" = []");
+        else
+            path.append("=[]");
+
+        if (flags & SEMICOLON)
         {
             path.append(';');
         }
@@ -282,7 +305,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         {
             auto end = fast_itoa(out, index++);
             path.append(string_view(out, end - out)).append("]");
-            recursive_print_gron(child.value(), path, out_growing_string);
+            recursive_print_gron(child.value(), path, out_growing_string, flags);
             path.erase(base_len);
         }
         path.erase(orig_base_len);
@@ -291,8 +314,11 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     case ondemand::json_type::object:
     {
         size_t base_len = path.size();
-        path.append(" = {}");
-        if (semicolon)
+        if (flags & SPACES)
+            path.append(" = {}");
+        else
+            path.append("={}");
+        if (flags & SEMICOLON)
         {
             path.append(';');
         }
@@ -318,7 +344,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                     path.append(".");
                     path.append(key.value());
                 }
-                recursive_print_gron(field.value(), path, out2);
+                recursive_print_gron(field.value(), path, out2, flags);
                 path.erase(base_len);
                 fields.emplace_back(key_str, string(out2));
                 out2.erase(0);
@@ -347,22 +373,24 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                     path.append(".");
                     path.append(key.value());
                 }
-                recursive_print_gron(field.value(), path, out_growing_string);
+                recursive_print_gron(field.value(), path, out_growing_string, flags);
                 path.erase(base_len);
             }
         }
         break;
     }
     case ondemand::json_type::number:
+    case ondemand::json_type::string:
+    case ondemand::json_type::boolean:
+    case ondemand::json_type::null:
     {
         size_t orig_out_len = out_growing_string.size();
-        out_growing_string.reserve_extra(100);
+        size_t path_size = path.size();
+        out_growing_string.reserve_extra(path_size + orig_out_len + 20);
         char *ptr = &out_growing_string.data[orig_out_len];
-        memcpy(ptr, &*path.data.begin(), path.size());
-        ptr += path.size();
-        *ptr++ = ' ';
-        *ptr++ = '=';
-        *ptr++ = ' ';
+        memcpy(ptr, &*path.data.begin(), path_size);
+        ptr += path_size;
+        ptr = print_equals(ptr, flags);
         string_view s = element.raw_json_token();
         while (s.size() > 0 && s[s.size() - 1] == ' ')
         {
@@ -370,7 +398,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         }
         memcpy(ptr, s.data(), s.size());
         ptr += s.size();
-        if (semicolon)
+        if (flags & SEMICOLON)
         {
             *ptr++ = ';';
         }
@@ -378,72 +406,6 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         if (can_show(string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len])))
         {
             out_growing_string.len = ptr - &out_growing_string.data[0];
-        }
-        break;
-    }
-    case ondemand::json_type::string:
-    {
-        size_t base_len = path.size();
-        string_view s = element.raw_json_token();
-        path.reserve_extra(s.size() + 20);
-        char *ptr = &path.data[base_len];
-        *ptr++ = ' ';
-        *ptr++ = '=';
-        *ptr++ = ' ';
-        while (s.size() > 0 && s[s.size() - 1] == ' ')
-        {
-            s.remove_suffix(1);
-        }
-        memcpy(ptr, s.data(), s.size());
-        ptr += s.size();
-        if (semicolon)
-        {
-            *ptr++ = ';';
-        }
-        *ptr++ = '\n';
-        path.len = ptr - &path.data[0];
-        gprint(path, out_growing_string);
-        path.erase(base_len);
-        break;
-    }
-    case ondemand::json_type::boolean:
-    {
-        size_t base_len = path.size();
-        if (element.get_bool())
-        {
-            path.append(" = true");
-            if (semicolon)
-            {
-                path.append(';');
-            }
-            path.append('\n');
-        }
-        else
-        {
-            path.append(" = false");
-            if (semicolon)
-            {
-                path.append(';');
-            }
-            path.append('\n');
-        }
-        gprint(path, out_growing_string);
-        path.erase(base_len);
-        break;
-    }
-    case ondemand::json_type::null:
-    {
-        if (element.is_null())
-        {
-            size_t base_len = path.size();
-            path.append(" = null");
-            if (semicolon)
-            {
-                path.append(';');
-            }
-            path.append('\n');
-            gprint(path, out_growing_string);
-            path.erase(base_len);
         }
         break;
     }
@@ -578,9 +540,12 @@ options parse_options(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "--semicolon") == 0)
         {
-            semicolon = true;
+            flags |= SEMICOLON;
         }
-
+        else if (strcmp(argv[i], "--no-spaces") == 0)
+        {
+            flags &= ~SPACES;
+        }
         else if (argv[i][0] == '-')
         {
             cerr << "Unknown option: " << argv[i] << "\n";
@@ -820,6 +785,7 @@ void print_help()
         "  --no-indent   don't indent output\n"
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
+        "  --no-spaces   don't add spaces around =\n"
         "\nHome page with more information: https://github.com/adamritter/fastgron\n";
 }
 
@@ -930,7 +896,7 @@ void print_filtered_path(growing_string &path, int processed, ondemand::value el
     }
     if (path.size() == processed)
     {
-        recursive_print_gron(element, path, batched_out);
+        recursive_print_gron(element, path, batched_out, flags);
     }
     else if (path.data[processed] == '.')
     {
@@ -1223,7 +1189,7 @@ int main(int argc, char *argv[])
         for (auto doc : docs)
         {
             growing_string path = growing_string(root).append("[").append(to_string(index++)).append("]");
-            recursive_print_gron(doc, path, batched_out);
+            recursive_print_gron(doc, path, batched_out, flags);
         }
     }
     // Execute as single document
@@ -1248,7 +1214,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            recursive_print_gron(val, path, batched_out);
+            recursive_print_gron(val, path, batched_out, flags);
         }
     }
     batched_print_flush();
