@@ -318,7 +318,12 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     {
         size_t orig_base_len = path.size();
         if (flags & SPACES)
-            path.append(" = []");
+            if (flags & COLOR)
+                path.append(" = \033[1;34m[]\033[0m");
+            else
+                path.append(" = []");
+        else if (flags & COLOR)
+            path.append("=\033[1;34m[]\033[0m");
         else
             path.append("=[]");
 
@@ -330,14 +335,21 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         gprint(path, out_growing_string);
         path.erase(orig_base_len);
         uint64_t index = 0;
-        path.append("[");
+        if (flags & COLOR)
+            path.append("\033[1;34m[\033[1;32m");
+        else
+            path.append("[");
         size_t base_len = path.size();
         char out[100];
 
         for (auto child : element.get_array())
         {
             auto end = fast_itoa(out, index++);
-            path.append(string_view(out, end - out)).append("]");
+            path.append(string_view(out, end - out));
+            if (flags & COLOR)
+                path.append("\033[1;34m]\033[0m");
+            else
+                path.append("]");
             recursive_print_gron(child.value(), path, out_growing_string, flags);
             path.erase(base_len);
         }
@@ -348,7 +360,12 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     {
         size_t base_len = path.size();
         if (flags & SPACES)
-            path.append(" = {}");
+            if (flags & COLOR)
+                path.append(" = \033[1;34m{}\033[0m");
+            else
+                path.append(" = {}");
+        else if (flags & COLOR)
+            path.append("=\033[1;34m{}\033[0m");
         else
             path.append("={}");
         if (flags & SEMICOLON)
@@ -368,14 +385,25 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                 string key_str(key.value());
                 if (!is_js_identifier(key.value()))
                 {
-                    path.append("[\"");
+                    if (flags & COLOR)
+                        path.append("\033[1;34m[\033[1;35m\"");
+                    else
+                        path.append("[\"");
                     path.append(key.value());
-                    path.append("\"]");
+
+                    if (flags & COLOR)
+                        path.append("\"\033[1;34m]\033[0m");
+                    else
+                        path.append("\"]");
                 }
                 else
                 {
                     path.append(".");
+                    if (flags & COLOR)
+                        path.append("\033[1;34m");
                     path.append(key.value());
+                    if (flags & COLOR)
+                        path.append("\033[0m");
                 }
                 recursive_print_gron(field.value(), path, out2, flags);
                 path.erase(base_len);
@@ -397,14 +425,24 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
                 auto key = field.unescaped_key();
                 if (!is_js_identifier(key.value()))
                 {
-                    path.append("[\"");
+                    if (flags & COLOR)
+                        path.append("\033[1;34m[\033[1;35m\"");
+                    else
+                        path.append("[\"");
                     path.append(key.value());
-                    path.append("\"]");
+                    if (flags & COLOR)
+                        path.append("\"\033[1;34m]\033[0m");
+                    else
+                        path.append("\"]");
                 }
                 else
                 {
                     path.append(".");
+                    if (flags & COLOR)
+                        path.append("\033[1;34m");
                     path.append(key.value());
+                    if (flags & COLOR)
+                        path.append("\033[0m");
                 }
                 recursive_print_gron(field.value(), path, out_growing_string, flags);
                 path.erase(base_len);
@@ -419,11 +457,36 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
     {
         size_t orig_out_len = out_growing_string.size();
         size_t path_size = path.size();
-        out_growing_string.reserve_extra(path_size + orig_out_len + 20);
+        out_growing_string.reserve_extra(path_size + orig_out_len + 30);
         char *ptr = &out_growing_string.data[orig_out_len];
         memcpy(ptr, path.data, path_size);
         ptr += path_size;
         ptr = print_equals(ptr, flags);
+        if (flags & COLOR)
+        {
+            *ptr++ = '\033';
+            *ptr++ = '[';
+            *ptr++ = '1';
+            *ptr++ = ';';
+            *ptr++ = '3';
+            if (element.type() == ondemand::json_type::number)
+            {
+                *ptr++ = '1';
+            }
+            else if (element.type() == ondemand::json_type::string)
+            {
+                *ptr++ = '2';
+            }
+            else if (element.type() == ondemand::json_type::boolean)
+            {
+                *ptr++ = '3';
+            }
+            else if (element.type() == ondemand::json_type::null)
+            {
+                *ptr++ = '0';
+            }
+            *ptr++ = 'm';
+        }
         string_view s = element.raw_json_token();
         while (s.size() > 0 && s[s.size() - 1] == ' ')
         {
@@ -431,6 +494,13 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         }
         memcpy(ptr, s.data(), s.size());
         ptr += s.size();
+        if (flags & COLOR)
+        {
+            *ptr++ = '\033';
+            *ptr++ = '[';
+            *ptr++ = '0';
+            *ptr++ = 'm';
+        }
         if (flags & SEMICOLON)
         {
             *ptr++ = ';';
@@ -827,6 +897,8 @@ void print_help()
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
         "  --no-spaces   don't add spaces around =\n"
+        "  --color       add color to output\n"
+        "  --no-color    don't add color to output\n"
         "\nHome page with more information: https://github.com/adamritter/fastgron\n";
 }
 
@@ -1151,6 +1223,10 @@ int main(int argc, char *argv[])
     {
         print_version();
         return 0;
+    }
+    if ((flags | COLOR) && filters.size() > 0)
+    {
+        flags &= ~COLOR; // Can't search in colorized text
     }
 
     padded_string json;
