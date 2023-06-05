@@ -35,13 +35,13 @@ using namespace std;
 string out;
 
 vector<string> filters;
-bool ignore_case = false;
-bool sort_output = false;
-bool invert_match = false;
 const unsigned SPACES = 1;
 const unsigned SEMICOLON = 2;
 const unsigned COLOR = 4;
 const unsigned COLORIZE_MATCHES = 8;
+const unsigned INVERT_MATCH = 16;
+const unsigned IGNORE_CASE = 32;
+const unsigned SORT_OUTPUT = 64;
 unsigned flags = SPACES;
 
 #include "growing_string.hpp"
@@ -55,7 +55,7 @@ bool can_show(string_view s)
         bool found = false;
         for (auto filter : filters)
         {
-            if (ignore_case)
+            if (flags & IGNORE_CASE)
             {
                 // std::tolower is slow, and doesn't handle UTF-8
                 auto it = std::search(
@@ -76,7 +76,7 @@ bool can_show(string_view s)
                 }
             }
         }
-        if (found == invert_match)
+        if (found == (flags & INVERT_MATCH ? true : false))
         {
             return false;
         }
@@ -210,7 +210,7 @@ void recursive_print_gron(ondemand::value element, growing_string &path, growing
         path.append('\n');
         gprint(path, out_growing_string);
         path.erase(base_len);
-        if (sort_output)
+        if (flags & SORT_OUTPUT)
         {
             std::vector<std::pair<string, string>> fields;
             growing_string out2;
@@ -427,7 +427,7 @@ options parse_options(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
         {
-            ignore_case = true;
+            flags |= IGNORE_CASE;
         }
         else if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--ungron") == 0)
         {
@@ -444,15 +444,15 @@ options parse_options(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--invert-match") == 0)
         {
-            invert_match = true;
+            flags |= INVERT_MATCH;
         }
         else if (strcmp(argv[i], "--sort") == 0)
         {
-            sort_output = true;
+            flags |= SORT_OUTPUT;
         }
         else if (strcmp(argv[i], "--no-sort") == 0)
         {
-            sort_output = false;
+            flags &= ~SORT_OUTPUT;
         }
         else if (strcmp(argv[i], "--user-agent") == 0)
         {
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[])
     ondemand::parser parser;
 
     options opts = parse_options(argc, argv);
-    if (ignore_case)
+    if (flags & IGNORE_CASE)
     {
         for (auto &filter : filters)
         {
