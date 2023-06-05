@@ -38,8 +38,6 @@ vector<string> filters;
 bool ignore_case = false;
 bool sort_output = false;
 bool invert_match = false;
-// bool semicolon = false;
-// bool no_spaces = false;
 const unsigned SPACES = 1;
 const unsigned SEMICOLON = 2;
 const unsigned COLOR = 4;
@@ -48,66 +46,7 @@ unsigned flags = SPACES;
 
 #include "growing_string.hpp"
 #include "batched_print.hpp"
-
-bool is_js_identifier(string_view s)
-{
-    if (s.empty())
-    {
-        return false;
-    }
-    if (!isalpha(s[0]) && s[0] != '_')
-    {
-        return false;
-    }
-    for (size_t i = 1; i < s.size(); i++)
-    {
-        if (!isalnum(s[i]) && s[i] != '_')
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-inline int raw_json_string_length(const ondemand::raw_json_string &str)
-{
-    bool in_escape = false;
-    const char *s = str.raw();
-    while (true)
-    {
-        switch (*s)
-        {
-        case '\\':
-            in_escape = !in_escape;
-            break;
-        case '"':
-            if (in_escape)
-            {
-                in_escape = false;
-            }
-            else
-            {
-                return s - str.raw();
-            }
-            break;
-        default:
-            if (in_escape)
-            {
-                in_escape = false;
-            }
-        }
-        s++;
-    }
-}
-
-char fast_tolower(char c)
-{
-    if (c >= 'A' && c <= 'Z')
-    {
-        return c + ('a' - 'A');
-    }
-    return c;
-}
+#include "jsonutils.hpp"
 
 bool can_show(string_view s)
 {
