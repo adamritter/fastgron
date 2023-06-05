@@ -2,6 +2,7 @@
 
 #include <string_view>
 #include <algorithm>
+#include <cstring>
 using std::max;
 using std::string_view;
 
