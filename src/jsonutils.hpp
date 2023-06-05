@@ -16,6 +16,7 @@ const unsigned COLORIZE_MATCHES = 8;
 const unsigned INVERT_MATCH = 16;
 const unsigned IGNORE_CASE = 32;
 const unsigned SORT_OUTPUT = 64;
+const unsigned INDENT = 128;
 
 inline bool is_js_identifier(string_view s)
 {

@@ -39,6 +39,9 @@ string out;
 #include "jsonutils.hpp"
 #include "print_gron.hpp"
 #include "print_filtered_path.hpp"
+#include "parse_json.hpp"
+#include "print_json.hpp"
+
 // Parse command-line options
 struct options
 {
@@ -52,7 +55,6 @@ struct options
 string root = "json";
 
 string user_agent = "fastgron";
-bool no_indent = false;
 
 bool is_url(string_view url)
 {
@@ -70,187 +72,12 @@ void print_simdjson_version()
     cerr << "(" << simdjson::get_active_implementation()->description() << ")" << endl;
 }
 
-// string_view is a bit faster, but needs to hold original document in memory.
-#define string_variant string_view
-using Builder = std::variant<string_variant, struct Map, struct Vector>;
-
-struct Map
-{
-    std::map<string, Builder> map;
-};
-
-struct Vector
-{
-    std::vector<Builder> vector;
-};
-
 growing_string indent = "";
-void print_json(Builder builder);
-void print_vector(Vector &vector_holder)
-{
-    batched_print("[\n");
-    if (!no_indent)
-    {
-        indent.append("  ");
-    }
-    bool first = true;
-    for (auto &item : vector_holder.vector)
-    {
-        if (!first)
-        {
-            batched_print(",\n");
-        }
-        first = false;
-        batched_print(indent.view());
-        print_json(item);
-    }
-    if (!no_indent)
-    {
-        indent.erase(indent.size() - 2);
-    }
-    batched_print("\n");
-    batched_print(indent.view());
-    batched_print("]");
-}
+#include "builder.hpp"
 
-void print_map(Map &map_holder)
-{
-    batched_print("{\n");
-    if (!no_indent)
-    {
-        indent.append("  ");
-    }
-    bool first = true;
-    for (auto &item : map_holder.map)
-    {
-        if (!first)
-        {
-            batched_print(",\n");
-        }
-        first = false;
-        batched_print(indent.view());
-        batched_print('"');
-        batched_print(item.first);
-        batched_print("\": ");
-        print_json(item.second);
-    }
-    if (!no_indent)
-    {
-        indent.erase(indent.size() - 2);
-    }
-    batched_print("\n");
-    batched_print(indent.view());
-    batched_print("}");
-}
-
-void print_json(Builder builder)
-{
-    if (std::holds_alternative<string_variant>(builder))
-    {
-        string_variant &s = std::get<string_variant>(builder);
-        if (s.empty())
-        {
-            batched_print("null");
-            return;
-        }
-        batched_print(std::get<string_variant>(builder));
-    }
-    else if (std::holds_alternative<Vector>(builder))
-    {
-        print_vector(std::get<Vector>(builder));
-    }
-    else if (std::holds_alternative<Map>(builder))
-    {
-        print_map(std::get<Map>(builder));
-    }
-}
 // Parse .hello[3]["asdf"] = 3.14; into builder
 vector<Builder *> parse_json_builders;
 vector<int> parse_json_builder_offsets;
-
-// BUG: ["..."] is not handled
-void parse_json(string_view line, Builder &builder, int offset)
-{
-    if (line.empty())
-    {
-        return;
-    }
-    if (line[0] == '.')
-    {
-        if (std::holds_alternative<string_variant>(builder))
-        {
-            builder.emplace<Map>();
-        }
-        auto &map_alt = std::get<Map>(builder).map;
-
-        // find end of key
-        size_t end = 1;
-        while (end < line.size() && line[end] != '[' && line[end] != '=' && line[end] != ' ' && line[end] != '.')
-        {
-            end++;
-        }
-        string key(line.substr(1, end - 1));
-        auto child = map_alt.find(key);
-        if (child == map_alt.end())
-        {
-            child = map_alt.emplace(key, string_variant()).first;
-        }
-        parse_json_builders.push_back(&child->second);
-        parse_json_builder_offsets.emplace_back(offset + end);
-        parse_json(line.substr(end), child->second, offset + end);
-    }
-    else if (line[0] == '[' && isdigit(line[1]))
-    {
-        if (std::holds_alternative<string_variant>(builder))
-        {
-            builder.emplace<Vector>();
-        }
-        auto &vector_alt = std::get<Vector>(builder).vector;
-        size_t end = 1;
-        while (end < line.size() && line[end] != ']')
-        {
-            end++;
-        }
-        if (end != line.size())
-        {
-            end++;
-        }
-        int index = stoi(string(line.substr(1, end - 1)));
-        if (index >= vector_alt.size())
-        {
-            vector_alt.resize(index + 1);
-        }
-        parse_json_builders.push_back(&vector_alt[index]);
-        parse_json_builder_offsets.emplace_back(offset + end);
-        parse_json(line.substr(end), vector_alt[index], offset + end);
-    }
-    else if (line[0] == '=' || (line[0] == ' ' && line[1] == '='))
-    {
-        size_t start = 1;
-        while (start < line.size() && (line[start] == ' ' || line[start] == '='))
-        {
-            start++;
-        }
-        size_t end = line.end() - line.begin();
-        while (end > start && (line[end - 1] == ' ' || line[end - 1] == ';'))
-        {
-            end--;
-        }
-        string_view value(line.substr(start, end - start));
-        if (value == "[]")
-        {
-            builder.emplace<Vector>();
-        }
-        else if (value == "{}")
-        {
-            builder.emplace<Map>();
-        }
-        else
-        {
-            builder.emplace<string_variant>(value);
-        }
-    }
-}
 
 void print_help()
 {
@@ -383,7 +210,7 @@ std::string download(std::string url)
     exit(EXIT_FAILURE);
 #endif
 }
-unsigned flags = SPACES;
+unsigned flags = SPACES | INDENT;
 vector<string> filters;
 
 options parse_options(int argc, char *argv[])
@@ -460,7 +287,7 @@ options parse_options(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "--no-indent") == 0)
         {
-            no_indent = true;
+            flags &= ~INDENT;
         }
         else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--path") == 0)
         {
@@ -616,7 +443,8 @@ int main(int argc, char *argv[])
             parse_json_builder_offsets.erase(parse_json_builder_offsets.begin() + index, parse_json_builder_offsets.end());
             Builder &passed_builder = parse_json_builders.empty() ? builder : *parse_json_builders.back();
             int offset = parse_json_builders.empty() ? 0 : parse_json_builder_offsets.back();
-            parse_json(line.substr(offset), passed_builder, offset);
+            parse_json(line.substr(offset), passed_builder, offset, parse_json_builders, parse_json_builder_offsets);
+
             // parse_json(line, builder, 0);
             last_line = line;
             data = end + 1;
@@ -626,11 +454,7 @@ int main(int argc, char *argv[])
             cerr << "Builder is not assigned\n";
             return EXIT_FAILURE;
         }
-        batched_out.reserve_extra(1000000);
-        print_json(builder);
-        batched_print("\n");
-        batched_print_flush();
-
+        print_json(builder, flags);
         return EXIT_SUCCESS;
     }
 
