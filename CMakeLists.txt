@@ -15,7 +15,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g $ENV{CXX_ARCH_FLAGS}")
 
 # Include your source files here
 add_executable(fastgron
+    src/batched_print.cpp
     src/fastgron.cpp
+    src/print_filtered_path.cpp
+    src/print_gron.cpp
     extern/simdjson/simdjson.cpp
 )
 target_include_directories(fastgron PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include extern/simdjson)

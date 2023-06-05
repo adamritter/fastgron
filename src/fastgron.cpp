@@ -34,332 +34,11 @@ using namespace std;
 
 string out;
 
-vector<string> filters;
-const unsigned SPACES = 1;
-const unsigned SEMICOLON = 2;
-const unsigned COLOR = 4;
-const unsigned COLORIZE_MATCHES = 8;
-const unsigned INVERT_MATCH = 16;
-const unsigned IGNORE_CASE = 32;
-const unsigned SORT_OUTPUT = 64;
-unsigned flags = SPACES;
-
 #include "growing_string.hpp"
 #include "batched_print.hpp"
 #include "jsonutils.hpp"
-
-bool can_show(string_view s)
-{
-    if (!filters.empty())
-    {
-        bool found = false;
-        for (auto filter : filters)
-        {
-            if (flags & IGNORE_CASE)
-            {
-                // std::tolower is slow, and doesn't handle UTF-8
-                auto it = std::search(
-                    s.begin(), s.end(),
-                    filter.begin(), filter.end(),
-                    [](unsigned char ch1, unsigned char ch2)
-                    { return fast_tolower(ch1) == (ch2); });
-                if (it != s.end())
-                {
-                    found = true;
-                }
-            }
-            else
-            {
-                if (s.find(filter) != string_view::npos)
-                {
-                    found = true;
-                }
-            }
-        }
-        if (found == (flags & INVERT_MATCH ? true : false))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-growing_string &colorize_matches(string_view s)
-{
-    static growing_string out;
-    out.clear_mem();
-    out.reserve_extra(s.size() + 100);
-    while (s.size() > 0)
-    {
-        size_t pos = 0;
-        size_t len = 0;
-        for (auto match : filters)
-        {
-            size_t pos2 = s.find(match, 0);
-            if (pos2 != string_view::npos)
-            {
-                pos = pos2;
-                len = match.size();
-            }
-        }
-        if (pos == 0)
-        {
-            out.append(s);
-            break;
-        }
-        out.append(s.substr(0, pos));
-        out.append("\033[1;31m");
-        out.append(s.substr(pos, len));
-        out.append("\033[0m");
-        s = s.substr(pos + len);
-    }
-    return out;
-}
-
-void gprint(string_view s, growing_string &out_growing_string)
-{
-    if (!can_show(s))
-    {
-        return;
-    }
-    if (flags & COLORIZE_MATCHES)
-    {
-        s = colorize_matches(s);
-    }
-    out_growing_string.append(s);
-}
-
-inline char *print_equals(char *ptr, const unsigned flags)
-{
-    if (flags & SPACES)
-    {
-        *ptr++ = ' ';
-        *ptr++ = '=';
-        *ptr++ = ' ';
-    }
-    else
-    {
-        *ptr++ = '=';
-    }
-    return ptr;
-}
-
-void recursive_print_gron(ondemand::value element, growing_string &path, growing_string &out_growing_string,
-                          const unsigned flags)
-{
-    switch (element.type())
-    {
-    case ondemand::json_type::array:
-    {
-        size_t orig_base_len = path.size();
-        if (flags & SPACES)
-            if (flags & COLOR)
-                path.append(" = \033[1;34m[]\033[0m");
-            else
-                path.append(" = []");
-        else if (flags & COLOR)
-            path.append("=\033[1;34m[]\033[0m");
-        else
-            path.append("=[]");
-
-        if (flags & SEMICOLON)
-        {
-            path.append(';');
-        }
-        path.append('\n');
-        gprint(path, out_growing_string);
-        path.erase(orig_base_len);
-        uint64_t index = 0;
-        if (flags & COLOR)
-            path.append("\033[1;34m[\033[1;32m");
-        else
-            path.append("[");
-        size_t base_len = path.size();
-        char out[100];
-
-        for (auto child : element.get_array())
-        {
-            auto end = fast_itoa(out, index++);
-            path.append(string_view(out, end - out));
-            if (flags & COLOR)
-                path.append("\033[1;34m]\033[0m");
-            else
-                path.append("]");
-            recursive_print_gron(child.value(), path, out_growing_string, flags);
-            path.erase(base_len);
-        }
-        path.erase(orig_base_len);
-        break;
-    }
-    case ondemand::json_type::object:
-    {
-        size_t base_len = path.size();
-        if (flags & SPACES)
-            if (flags & COLOR)
-                path.append(" = \033[1;34m{}\033[0m");
-            else
-                path.append(" = {}");
-        else if (flags & COLOR)
-            path.append("=\033[1;34m{}\033[0m");
-        else
-            path.append("={}");
-        if (flags & SEMICOLON)
-        {
-            path.append(';');
-        }
-        path.append('\n');
-        gprint(path, out_growing_string);
-        path.erase(base_len);
-        if (flags & SORT_OUTPUT)
-        {
-            std::vector<std::pair<string, string>> fields;
-            growing_string out2;
-            for (auto field : element.get_object())
-            {
-                auto key = field.unescaped_key();
-                string key_str(key.value());
-                if (!is_js_identifier(key.value()))
-                {
-                    if (flags & COLOR)
-                        path.append("\033[1;34m[\033[1;35m\"");
-                    else
-                        path.append("[\"");
-                    path.append(key.value());
-
-                    if (flags & COLOR)
-                        path.append("\"\033[1;34m]\033[0m");
-                    else
-                        path.append("\"]");
-                }
-                else
-                {
-                    path.append(".");
-                    if (flags & COLOR)
-                        path.append("\033[1;34m");
-                    path.append(key.value());
-                    if (flags & COLOR)
-                        path.append("\033[0m");
-                }
-                recursive_print_gron(field.value(), path, out2, flags);
-                path.erase(base_len);
-                fields.emplace_back(key_str, string(out2));
-                out2.erase(0);
-            }
-            std::sort(fields.begin(), fields.end(), [](auto &a, auto &b)
-                      { return a.first < b.first; });
-            for (auto &field : fields)
-            {
-                out_growing_string.append(field.second);
-            }
-        }
-        else
-        {
-
-            for (auto field : element.get_object())
-            {
-                auto key = field.unescaped_key();
-                if (!is_js_identifier(key.value()))
-                {
-                    if (flags & COLOR)
-                        path.append("\033[1;34m[\033[1;35m\"");
-                    else
-                        path.append("[\"");
-                    path.append(key.value());
-                    if (flags & COLOR)
-                        path.append("\"\033[1;34m]\033[0m");
-                    else
-                        path.append("\"]");
-                }
-                else
-                {
-                    path.append(".");
-                    if (flags & COLOR)
-                        path.append("\033[1;34m");
-                    path.append(key.value());
-                    if (flags & COLOR)
-                        path.append("\033[0m");
-                }
-                recursive_print_gron(field.value(), path, out_growing_string, flags);
-                path.erase(base_len);
-            }
-        }
-        break;
-    }
-    case ondemand::json_type::number:
-    case ondemand::json_type::string:
-    case ondemand::json_type::boolean:
-    case ondemand::json_type::null:
-    {
-        size_t orig_out_len = out_growing_string.size();
-        size_t path_size = path.size();
-        out_growing_string.reserve_extra(path_size + orig_out_len + 30);
-        char *ptr = &out_growing_string.data[orig_out_len];
-        memcpy(ptr, path.data, path_size);
-        ptr += path_size;
-        ptr = print_equals(ptr, flags);
-        if (flags & COLOR)
-        {
-            *ptr++ = '\033';
-            *ptr++ = '[';
-            *ptr++ = '1';
-            *ptr++ = ';';
-            *ptr++ = '3';
-            if (element.type() == ondemand::json_type::number)
-            {
-                *ptr++ = '1';
-            }
-            else if (element.type() == ondemand::json_type::string)
-            {
-                *ptr++ = '2';
-            }
-            else if (element.type() == ondemand::json_type::boolean)
-            {
-                *ptr++ = '3';
-            }
-            else if (element.type() == ondemand::json_type::null)
-            {
-                *ptr++ = '0';
-            }
-            *ptr++ = 'm';
-        }
-        string_view s = element.raw_json_token();
-        while (s.size() > 0 && s[s.size() - 1] == ' ')
-        {
-            s.remove_suffix(1);
-        }
-        memcpy(ptr, s.data(), s.size());
-        ptr += s.size();
-        if (flags & COLOR)
-        {
-            *ptr++ = '\033';
-            *ptr++ = '[';
-            *ptr++ = '0';
-            *ptr++ = 'm';
-        }
-        if (flags & SEMICOLON)
-        {
-            *ptr++ = ';';
-        }
-        *ptr++ = '\n';
-        string_view ss = string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len]);
-        if (can_show(ss))
-        {
-            if (flags & COLORIZE_MATCHES)
-            {
-                ss = colorize_matches(ss);
-                out_growing_string.append(ss);
-            }
-            else
-            {
-                out_growing_string.len = ptr - &out_growing_string.data[0];
-            }
-        }
-        break;
-    }
-    }
-    batched_print_flush_if_needed();
-}
-
+#include "print_gron.hpp"
+#include "print_filtered_path.hpp"
 // Parse command-line options
 struct options
 {
@@ -389,147 +68,6 @@ void print_simdjson_version()
     cerr << "simdjson v" << SIMDJSON_VERSION << endl;
     cerr << "  Detected the best implementation for your machine: " << simdjson::get_active_implementation()->name();
     cerr << "(" << simdjson::get_active_implementation()->description() << ")" << endl;
-}
-
-options parse_options(int argc, char *argv[])
-{
-    options opts;
-    opts.stream = false;
-    opts.help = false;
-    opts.version = false;
-    opts.ungron = false;
-
-    if (argc == 1 && isatty(0))
-    {
-        opts.help = true;
-    }
-
-    for (int i = 1; i < argc; ++i)
-    {
-        if (strcmp(argv[i], "--stream") == 0 || strcmp(argv[i], "-s") == 0)
-        {
-            opts.stream = true;
-        }
-        else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
-        {
-            opts.help = true;
-            break; // No need to process further arguments
-        }
-        else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-V") == 0)
-        {
-            opts.version = true;
-            break; // No need to process further arguments
-        }
-        else if (strcmp(argv[i], "--simdjson-version") == 0)
-        {
-            print_simdjson_version();
-            exit(EXIT_SUCCESS);
-        }
-        else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
-        {
-            flags |= IGNORE_CASE;
-        }
-        else if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--ungron") == 0)
-        {
-            opts.ungron = true;
-        }
-        else if (strcmp(argv[i], "-F") == 0 || strcmp(argv[i], "--fixed-string") == 0)
-        {
-            if (i + 1 >= argc)
-            {
-                cerr << "Missing argument for -F\n";
-                exit(EXIT_FAILURE);
-            }
-            filters.push_back(argv[++i]);
-        }
-        else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--invert-match") == 0)
-        {
-            flags |= INVERT_MATCH;
-        }
-        else if (strcmp(argv[i], "--sort") == 0)
-        {
-            flags |= SORT_OUTPUT;
-        }
-        else if (strcmp(argv[i], "--no-sort") == 0)
-        {
-            flags &= ~SORT_OUTPUT;
-        }
-        else if (strcmp(argv[i], "--user-agent") == 0)
-        {
-            if (i + 1 >= argc)
-            {
-                cerr << "Missing argument for --user-agent\n";
-                exit(EXIT_FAILURE);
-            }
-            user_agent = argv[++i];
-        }
-        else if (strcmp(argv[i], "--no-indent") == 0)
-        {
-            no_indent = true;
-        }
-        else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--path") == 0)
-        {
-            if (i + 1 >= argc)
-            {
-                cerr << "Missing argument for -p\n";
-                exit(EXIT_FAILURE);
-            }
-            opts.filtered_path = argv[++i];
-        }
-        else if (strcmp(argv[i], "--root") == 0)
-        {
-            if (i + 1 >= argc)
-            {
-                cerr << "Missing argument for --root\n";
-                exit(EXIT_FAILURE);
-            }
-            root = argv[++i];
-        }
-        else if (strcmp(argv[i], "--semicolon") == 0)
-        {
-            flags |= SEMICOLON;
-        }
-        else if (strcmp(argv[i], "--no-spaces") == 0)
-        {
-            flags &= ~SPACES;
-        }
-        else if (strcmp(argv[i], "--color") == 0 || strcmp(argv[i], "-c") == 0)
-        {
-            flags |= COLOR;
-        }
-        else if (strcmp(argv[i], "--no-color") == 0)
-        {
-            flags &= ~COLOR;
-        }
-        else if (argv[i][0] == '-')
-        {
-            cerr << "Unknown option: " << argv[i] << "\n";
-            exit(EXIT_FAILURE);
-        }
-        else
-        {
-            if (!is_url(argv[i]) && access(argv[i], F_OK) == -1 && argv[i] != string("-"))
-            {
-                // Treat strings starting with . as paths
-                if (argv[i][0] == '.')
-                {
-                    opts.filtered_path = argv[i];
-                    continue;
-                }
-                else
-                {
-                    cerr << "File not found: " << argv[i] << "\n";
-                    exit(EXIT_FAILURE);
-                }
-            }
-            else
-            {
-                opts.filename = argv[i];
-            }
-        }
-    }
-
-    return opts;
 }
 
 // string_view is a bit faster, but needs to hold original document in memory.
@@ -845,198 +383,148 @@ std::string download(std::string url)
     exit(EXIT_FAILURE);
 #endif
 }
-void print_filtered_path(growing_string &path, int processed, ondemand::value element)
+unsigned flags = SPACES;
+vector<string> filters;
+
+options parse_options(int argc, char *argv[])
 {
-    if (processed == 0 && path.starts_with(root))
+    options opts;
+    opts.stream = false;
+    opts.help = false;
+    opts.version = false;
+    opts.ungron = false;
+
+    if (argc == 1 && isatty(0))
     {
-        processed = root.size();
+        opts.help = true;
     }
-    if (path.size() == processed)
+
+    for (int i = 1; i < argc; ++i)
     {
-        recursive_print_gron(element, path, batched_out, flags);
-    }
-    else if (path.data[processed] == '.')
-    {
-        int end = processed + 1;
-        while (end < path.size() && path.data[end] != '[' && path.data[end] != '.')
+        if (strcmp(argv[i], "--stream") == 0 || strcmp(argv[i], "-s") == 0)
         {
-            end++;
+            opts.stream = true;
         }
-        string_view key(&path.data[processed + 1], end - processed - 1);
-        if (key == "#")
+        else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
         {
-            if (element.type() == ondemand::json_type::array)
+            opts.help = true;
+            break; // No need to process further arguments
+        }
+        else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-V") == 0)
+        {
+            opts.version = true;
+            break; // No need to process further arguments
+        }
+        else if (strcmp(argv[i], "--simdjson-version") == 0)
+        {
+            print_simdjson_version();
+            exit(EXIT_SUCCESS);
+        }
+        else if (strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--ignore-case") == 0)
+        {
+            flags |= IGNORE_CASE;
+        }
+        else if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--ungron") == 0)
+        {
+            opts.ungron = true;
+        }
+        else if (strcmp(argv[i], "-F") == 0 || strcmp(argv[i], "--fixed-string") == 0)
+        {
+            if (i + 1 >= argc)
             {
-                int index = 0;
-                growing_string path2 = path.view().substr(0, processed);
-                for (auto child : element.get_array())
-                {
-                    path2.append("[");
-                    path2.append(std::to_string(index++));
-                    path2.append("]");
-                    int processed2 = path2.len;
-                    path2.append(path.view().substr(end));
-                    print_filtered_path(path2, processed2, child.value());
-                    path2.erase(processed);
-                }
-            }
-            else if (element.type() == ondemand::json_type::object)
-            {
-                growing_string path2 = path.view().substr(0, processed);
-                for (auto field : element.get_object())
-                {
-                    path2.append(".");
-                    path2.append(field.unescaped_key().value());
-                    int processed2 = path2.len;
-                    path2.append(path.view().substr(end));
-                    print_filtered_path(path2, processed2, field.value());
-                    path2.erase(processed);
-                }
-            }
-            else
-            {
-                cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
+                cerr << "Missing argument for -F\n";
                 exit(EXIT_FAILURE);
             }
+            filters.push_back(argv[++i]);
         }
-        else if (element.type() == ondemand::json_type::object)
+        else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--invert-match") == 0)
         {
-
-            auto field = element.find_field(key);
-            if (field.error() == SUCCESS)
+            flags |= INVERT_MATCH;
+        }
+        else if (strcmp(argv[i], "--sort") == 0)
+        {
+            flags |= SORT_OUTPUT;
+        }
+        else if (strcmp(argv[i], "--no-sort") == 0)
+        {
+            flags &= ~SORT_OUTPUT;
+        }
+        else if (strcmp(argv[i], "--user-agent") == 0)
+        {
+            if (i + 1 >= argc)
             {
-                print_filtered_path(path, end, field.value());
+                cerr << "Missing argument for --user-agent\n";
+                exit(EXIT_FAILURE);
             }
-            else
+            user_agent = argv[++i];
+        }
+        else if (strcmp(argv[i], "--no-indent") == 0)
+        {
+            no_indent = true;
+        }
+        else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--path") == 0)
+        {
+            if (i + 1 >= argc)
             {
-                if (field.error() == 19)
+                cerr << "Missing argument for -p\n";
+                exit(EXIT_FAILURE);
+            }
+            opts.filtered_path = argv[++i];
+        }
+        else if (strcmp(argv[i], "--root") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                cerr << "Missing argument for --root\n";
+                exit(EXIT_FAILURE);
+            }
+            root = argv[++i];
+        }
+        else if (strcmp(argv[i], "--semicolon") == 0)
+        {
+            flags |= SEMICOLON;
+        }
+        else if (strcmp(argv[i], "--no-spaces") == 0)
+        {
+            flags &= ~SPACES;
+        }
+        else if (strcmp(argv[i], "--color") == 0 || strcmp(argv[i], "-c") == 0)
+        {
+            flags |= COLOR;
+        }
+        else if (strcmp(argv[i], "--no-color") == 0)
+        {
+            flags &= ~COLOR;
+        }
+        else if (argv[i][0] == '-')
+        {
+            cerr << "Unknown option: " << argv[i] << "\n";
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            if (!is_url(argv[i]) && access(argv[i], F_OK) == -1 && argv[i] != string("-"))
+            {
+                // Treat strings starting with . as paths
+                if (argv[i][0] == '.')
                 {
-                    cerr << "field error: key: " << key << " not found in path " << string(path) << "\n";
+                    opts.filtered_path = argv[i];
+                    continue;
                 }
                 else
                 {
-                    cerr << "field error: " << (int)field.error() << "\n";
-                }
-            }
-        }
-        else if (isdigit(key[0]) && element.type() == ondemand::json_type::array)
-        {
-            int index = stoi(string(key));
-            auto child = element.at(index);
-            if (child.error() == SUCCESS)
-            {
-                growing_string path2 = path.view().substr(0, processed);
-                path2.append("[");
-                path2.append(key);
-                path2.append("]");
-                path2.append(path.view().substr(end));
-                print_filtered_path(path2, end + 1, child.value());
-            }
-            else
-            {
-                cerr << "child error: " << (int)child.error() << "\n";
-            }
-        }
-    }
-    else if (path.data[processed] == '[')
-    {
-        int end = processed + 1;
-
-        if (isdigit(path.data[end]))
-        {
-            while (isdigit(path.data[end]))
-            {
-                end++;
-            }
-            if (path.data[end] == ']')
-            {
-                int index = stoi(string(&path.data[processed + 1], end - processed - 1));
-                if (element.type() != ondemand::json_type::array)
-                {
-                    cerr << "Element is not an array at path " << string(path).substr(0, processed + 1) << "\n";
-                    exit(EXIT_FAILURE);
-                }
-                auto child = element.at(index);
-                if (child.error() == SUCCESS)
-                {
-                    print_filtered_path(path, end + 1, child.value());
-                }
-                else
-                {
-                    cerr << "child error: " << (int)child.error() << "\n";
-                }
-            }
-        }
-        else if (path.data[end] == '"')
-        {
-            while (path.data[end] != '"')
-            {
-                end++;
-            }
-            end++;
-            if (path.data[end] == ']')
-            {
-                string_view key(&path.data[processed + 2], end - processed - 3);
-                auto field = element.find_field(key);
-                if (field.error() == SUCCESS)
-                {
-                    print_filtered_path(path, end + 1, field.value());
-                }
-            }
-        }
-        else if (path.data[end] == '#')
-        {
-            end++;
-            if (path.data[end] == ']')
-            {
-                end++;
-                if (element.type() == ondemand::json_type::array)
-                {
-                    growing_string path2 = path.view().substr(0, processed);
-                    int index = 0;
-                    for (auto child : element.get_array())
-                    {
-                        path2.append("[");
-                        path2.append(std::to_string(index++));
-                        path2.append("]");
-                        int processed2 = path2.len;
-                        path2.append(path.view().substr(end));
-                        print_filtered_path(path2, processed2, child.value());
-                        path2.erase(processed);
-                    }
-                }
-                else if (element.type() == ondemand::json_type::object)
-                {
-                    growing_string path2 = path.view().substr(0, processed);
-                    for (auto field : element.get_object())
-                    {
-                        path2.append("[\"");
-                        path2.append(field.unescaped_key().value());
-                        path2.append("\"]");
-                        int processed2 = path2.len;
-                        path2.append(path.view().substr(end));
-                        print_filtered_path(path2, processed2, field.value());
-                        path2.erase(processed);
-                    }
-                }
-                else
-                {
-                    cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
+                    cerr << "File not found: " << argv[i] << "\n";
                     exit(EXIT_FAILURE);
                 }
             }
             else
             {
-                cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
-                exit(EXIT_FAILURE);
+                opts.filename = argv[i];
             }
         }
     }
-    else
-    {
-        cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
-        exit(EXIT_FAILURE);
-    }
+
+    return opts;
 }
 
 int main(int argc, char *argv[])
@@ -1103,7 +591,7 @@ int main(int argc, char *argv[])
                 end++;
             }
             string_view line_orig = string_view(data, end - data);
-            if (!can_show(line_orig))
+            if (!can_show(line_orig, flags, filters))
             {
                 data = end + 1;
                 continue;
@@ -1151,11 +639,11 @@ int main(int argc, char *argv[])
     {
         ondemand::document_stream docs = parser.iterate_many(json);
         int index = 0;
-        gprint(root + " = [];\n", batched_out);
+        gprint(root + " = [];\n", batched_out, flags, filters);
         for (auto doc : docs)
         {
             growing_string path = growing_string(root).append("[").append(to_string(index++)).append("]");
-            recursive_print_gron(doc, path, batched_out, flags);
+            recursive_print_gron(doc, path, batched_out, flags, filters);
         }
     }
     // Execute as single document
@@ -1176,11 +664,16 @@ int main(int argc, char *argv[])
                 path.append(".");
             }
             path.append(opts.filtered_path);
-            print_filtered_path(path, 0, val);
+            int processed = 0;
+            if (processed == 0 && path.starts_with(root))
+            {
+                processed = root.size();
+            }
+            print_filtered_path(path, processed, val, flags, filters);
         }
         else
         {
-            recursive_print_gron(val, path, batched_out, flags);
+            recursive_print_gron(val, path, batched_out, flags, filters);
         }
     }
     batched_print_flush();
