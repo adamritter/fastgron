@@ -72,4 +72,19 @@ if(BASH_PROGRAM)
 
     add_test(array_path_test ${BASH_PROGRAM} -c "echo '[3,4,5]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron .1")
     set_tests_properties(array_path_test PROPERTIES PASS_REGULAR_EXPRESSION "json\\[1\\] = 4")
+
+    add_test(array_path_test_bracket ${BASH_PROGRAM} -c "echo '[3,4,5]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '[1]'")
+    set_tests_properties(array_path_test_bracket PROPERTIES PASS_REGULAR_EXPRESSION "json\\[1\\] = 4")
+
+    add_test(multi ${BASH_PROGRAM} -c "echo '[[3],[4],[5]]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '.#[0]'")
+    set_tests_properties(multi PROPERTIES PASS_REGULAR_EXPRESSION "json\\[1\\]\\[0\\] = 4")
+
+    add_test(multi2 ${BASH_PROGRAM} -c "echo '[[3],[4],[5]]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '[#][0]'")
+    set_tests_properties(multi2 PROPERTIES PASS_REGULAR_EXPRESSION "json\\[1\\]\\[0\\] = 4")
+
+    add_test(multi3 ${BASH_PROGRAM} -c "echo '{\"aa\":[1,2,3],\"b\":[2,3,4],\"c\":[4,5,6]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '.#[0]'")
+    set_tests_properties(multi3 PROPERTIES PASS_REGULAR_EXPRESSION "json.b\\[0\\] = 2")
+
+    add_test(multi4 ${BASH_PROGRAM} -c "echo '{\"aa\":[1,2,3],\"b\":[2,3,4],\"c\":[4,5,6]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '[#][0]'")
+    set_tests_properties(multi4 PROPERTIES PASS_REGULAR_EXPRESSION "json.b\\[0\\] = 2")
 endif(BASH_PROGRAM)

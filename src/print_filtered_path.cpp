@@ -1,6 +1,67 @@
 #include "print_filtered_path.hpp"
 #include "simdjson.h"
 
+using std::to_string;
+
+void exit_with_error(string message)
+{
+    cerr << message << "\n";
+    exit(EXIT_FAILURE);
+}
+
+int find_path_end(growing_string &path, int processed)
+{
+    int end = processed + 1;
+    while (end < path.size() && path.data[end] != '[' && path.data[end] != '.')
+    {
+        end++;
+    }
+    return end;
+}
+
+void process_element_as_object(growing_string &path, int processed, int end, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+{
+    cerr << "process_element_as_object: " << string(path) << ", processed: " << processed << ", end: " << end << "\n";
+    growing_string path2 = path.view().substr(0, processed);
+    for (auto field : element.get_object())
+    {
+        string_view key = field.unescaped_key().value();
+        if (is_js_identifier(key))
+        {
+            path2.append(".");
+            path2.append(key);
+        }
+        else
+        {
+            path2.append("[\"");
+            path2.append(key);
+            path2.append("\"]");
+        }
+
+        int processed2 = path2.len;
+        path2.append(path.view().substr(find_path_end(path, processed)));
+        print_filtered_path(path2, processed2, field.value(), flags, filters);
+        path2.erase(processed);
+    }
+}
+
+void process_element_as_array(growing_string &path, int processed, int end, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+{
+    int index = 0;
+    growing_string path2 = path.view().substr(0, processed);
+    for (auto child : element.get_array())
+    {
+        path2.append("[");
+        path2.append(std::to_string(index++));
+        path2.append("]");
+
+        int processed2 = path2.len;
+        path2.append(path.view().substr(find_path_end(path, processed)));
+        print_filtered_path(path2, processed2, child.value(), flags, filters);
+        path2.erase(processed);
+    }
+}
+
 void print_filtered_path(growing_string &path, int processed, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
 {
     if (path.size() == processed)
@@ -19,36 +80,15 @@ void print_filtered_path(growing_string &path, int processed, simdjson::ondemand
         {
             if (element.type() == simdjson::ondemand::json_type::array)
             {
-                int index = 0;
-                growing_string path2 = path.view().substr(0, processed);
-                for (auto child : element.get_array())
-                {
-                    path2.append("[");
-                    path2.append(std::to_string(index++));
-                    path2.append("]");
-                    int processed2 = path2.len;
-                    path2.append(path.view().substr(end));
-                    print_filtered_path(path2, processed2, child.value(), flags, filters);
-                    path2.erase(processed);
-                }
+                process_element_as_array(path, processed, end, element, flags, filters);
             }
             else if (element.type() == simdjson::ondemand::json_type::object)
             {
-                growing_string path2 = path.view().substr(0, processed);
-                for (auto field : element.get_object())
-                {
-                    path2.append(".");
-                    path2.append(field.unescaped_key().value());
-                    int processed2 = path2.len;
-                    path2.append(path.view().substr(end));
-                    print_filtered_path(path2, processed2, field.value(), flags, filters);
-                    path2.erase(processed);
-                }
+                process_element_as_object(path, processed, end, element, flags, filters);
             }
             else
             {
-                cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
-                exit(EXIT_FAILURE);
+                exit_with_error("Element is not an array or object at path " + string(path).substr(0, processed + 1));
             }
         }
         else if (element.type() == simdjson::ondemand::json_type::object)
@@ -103,8 +143,7 @@ void print_filtered_path(growing_string &path, int processed, simdjson::ondemand
                 int index = stoi(string(&path.data[processed + 1], end - processed - 1));
                 if (element.type() != simdjson::ondemand::json_type::array)
                 {
-                    cerr << "Element is not an array at path " << string(path).substr(0, processed + 1) << "\n";
-                    exit(EXIT_FAILURE);
+                    exit_with_error("Element is not an array at path " + string(path).substr(0, processed + 1));
                 }
                 auto child = element.at(index);
                 if (child.error() == simdjson::SUCCESS)
@@ -142,49 +181,25 @@ void print_filtered_path(growing_string &path, int processed, simdjson::ondemand
                 end++;
                 if (element.type() == simdjson::ondemand::json_type::array)
                 {
-                    growing_string path2 = path.view().substr(0, processed);
-                    int index = 0;
-                    for (auto child : element.get_array())
-                    {
-                        path2.append("[");
-                        path2.append(std::to_string(index++));
-                        path2.append("]");
-                        int processed2 = path2.len;
-                        path2.append(path.view().substr(end));
-                        print_filtered_path(path2, processed2, child.value(), flags, filters);
-                        path2.erase(processed);
-                    }
+                    process_element_as_array(path, processed, end, element, flags, filters);
                 }
                 else if (element.type() == simdjson::ondemand::json_type::object)
                 {
-                    growing_string path2 = path.view().substr(0, processed);
-                    for (auto field : element.get_object())
-                    {
-                        path2.append("[\"");
-                        path2.append(field.unescaped_key().value());
-                        path2.append("\"]");
-                        int processed2 = path2.len;
-                        path2.append(path.view().substr(end));
-                        print_filtered_path(path2, processed2, field.value(), flags, filters);
-                        path2.erase(processed);
-                    }
+                    process_element_as_object(path, processed, end, element, flags, filters);
                 }
                 else
                 {
-                    cerr << "Element is not an array or object at path " << string(path).substr(0, processed + 1) << "\n";
-                    exit(EXIT_FAILURE);
+                    exit_with_error("Element is not an array or object at path " + string(path).substr(0, processed + 1));
                 }
             }
             else
             {
-                cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
-                exit(EXIT_FAILURE);
+                exit_with_error("Invalid path: " + string(path) + ", processed: " + std::to_string(processed));
             }
         }
     }
     else
     {
-        cerr << "Invalid path: " << string(path) << ", processed: " << processed << "\n";
-        exit(EXIT_FAILURE);
+        exit_with_error("Invalid path: " + string(path) + ", processed: " + std::to_string(processed));
     }
 }
