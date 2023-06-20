@@ -1,10 +1,10 @@
 #include <string_view>
-#include "parse_json.hpp"
+#include "parse_gron.hpp"
 
 // BUG: ["..."] is not handled
-void parse_json(string_view line, Builder &builder, int offset,
-                vector<Builder *> &parse_json_builders,
-                vector<int> &parse_json_builder_offsets)
+void parse_gron(string_view line, Builder &builder, int offset,
+                vector<Builder *> &parse_gron_builders,
+                vector<int> &parse_gron_builder_offsets)
 
 {
     if (line.empty())
@@ -31,9 +31,9 @@ void parse_json(string_view line, Builder &builder, int offset,
         {
             child = map_alt.emplace(key, string_variant()).first;
         }
-        parse_json_builders.push_back(&child->second);
-        parse_json_builder_offsets.emplace_back(offset + end);
-        parse_json(line.substr(end), child->second, offset + end, parse_json_builders, parse_json_builder_offsets);
+        parse_gron_builders.push_back(&child->second);
+        parse_gron_builder_offsets.emplace_back(offset + end);
+        parse_gron(line.substr(end), child->second, offset + end, parse_gron_builders, parse_gron_builder_offsets);
     }
     else if (line[0] == '[' && isdigit(line[1]))
     {
@@ -56,9 +56,9 @@ void parse_json(string_view line, Builder &builder, int offset,
         {
             vector_alt.resize(index + 1);
         }
-        parse_json_builders.push_back(&vector_alt[index]);
-        parse_json_builder_offsets.emplace_back(offset + end);
-        parse_json(line.substr(end), vector_alt[index], offset + end, parse_json_builders, parse_json_builder_offsets);
+        parse_gron_builders.push_back(&vector_alt[index]);
+        parse_gron_builder_offsets.emplace_back(offset + end);
+        parse_gron(line.substr(end), vector_alt[index], offset + end, parse_gron_builders, parse_gron_builder_offsets);
     }
     else if (line[0] == '=' || (line[0] == ' ' && line[1] == '='))
     {

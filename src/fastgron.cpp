@@ -39,7 +39,7 @@ string out;
 #include "jsonutils.hpp"
 #include "print_gron.hpp"
 #include "print_filtered_path.hpp"
-#include "parse_json.hpp"
+#include "parse_gron.hpp"
 #include "print_json.hpp"
 
 // Parse command-line options
@@ -76,8 +76,8 @@ growing_string indent = "";
 #include "builder.hpp"
 
 // Parse .hello[3]["asdf"] = 3.14; into builder
-vector<Builder *> parse_json_builders;
-vector<int> parse_json_builder_offsets;
+vector<Builder *> parse_gron_builders;
+vector<int> parse_gron_builder_offsets;
 
 void print_help()
 {
@@ -435,17 +435,17 @@ int main(int argc, char *argv[])
                 common++;
             }
             int index = 0;
-            while (index < parse_json_builder_offsets.size() && parse_json_builder_offsets[index] <= common)
+            while (index < parse_gron_builder_offsets.size() && parse_gron_builder_offsets[index] <= common)
             {
                 index++;
             }
-            parse_json_builders.erase(parse_json_builders.begin() + index, parse_json_builders.end());
-            parse_json_builder_offsets.erase(parse_json_builder_offsets.begin() + index, parse_json_builder_offsets.end());
-            Builder &passed_builder = parse_json_builders.empty() ? builder : *parse_json_builders.back();
-            int offset = parse_json_builders.empty() ? 0 : parse_json_builder_offsets.back();
-            parse_json(line.substr(offset), passed_builder, offset, parse_json_builders, parse_json_builder_offsets);
+            parse_gron_builders.erase(parse_gron_builders.begin() + index, parse_gron_builders.end());
+            parse_gron_builder_offsets.erase(parse_gron_builder_offsets.begin() + index, parse_gron_builder_offsets.end());
+            Builder &passed_builder = parse_gron_builders.empty() ? builder : *parse_gron_builders.back();
+            int offset = parse_gron_builders.empty() ? 0 : parse_gron_builder_offsets.back();
+            parse_gron(line.substr(offset), passed_builder, offset, parse_gron_builders, parse_gron_builder_offsets);
 
-            // parse_json(line, builder, 0);
+            // parse_gron(line, builder, 0);
             last_line = line;
             data = end + 1;
         }
