@@ -15,9 +15,9 @@ class Parser
 public:
     Parser(const std::string &input) : input_(input), index_(0) {}
 
-    ObjectAccessors parse()
+    ValueAccessor parse()
     {
-        return parseObjectAccessors();
+        return parseValueAccessor();
     }
 
 private:
@@ -54,11 +54,13 @@ private:
             if (lookAhead(3) == "...")
             {
                 accessors.echo_others = true;
-                consume(3); // Assuming consume function consumes N characters from input.
+                consume(3);
                 break;
             }
             parseObjectAccessor(accessors.object_accessors.emplace_back());
         }
+        sort(accessors.object_accessors.begin(), accessors.object_accessors.end(), [](const ObjectAccessor &a, const ObjectAccessor &b)
+             { return a.key < b.key; });
         return accessors;
     }
 
@@ -99,9 +101,15 @@ private:
     {
         if (match('['))
         {
-            if (match('"'))
+            if (match('#'))
             {
-                // object accessor
+                expect(']');
+                AllAccessor allAccessor;
+                allAccessor.value_accessor = parseValueAccessor();
+                return allAccessor;
+            }
+            else if (match('"'))
+            {
                 ObjectAccessors objectAccessors;
                 string key = parseJSONString();
                 expect(']');
@@ -120,7 +128,13 @@ private:
         }
         else if (match('.'))
         {
-            if (isIdentifierChar(input_[index_]))
+            if (match('#'))
+            {
+                AllAccessor allAccessor;
+                allAccessor.value_accessor = parseValueAccessor();
+                return allAccessor;
+            }
+            else if (isIdentifierChar(input_[index_]))
             {
                 ObjectAccessors objectAccessors;
                 string key = parseJSONString();

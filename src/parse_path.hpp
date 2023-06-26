@@ -18,13 +18,20 @@
 #include <variant>
 using namespace std;
 
+struct AllAccessor;
 struct Slice;
 struct ObjectAccessor;
 struct ObjectAccessors;
 
 using ValueAccessor = std::variant<std::monostate,
                                    Slice,
-                                   ObjectAccessors>;
+                                   ObjectAccessors,
+                                   AllAccessor>;
+// Foreach object key or foreach array index
+struct AllAccessor
+{
+    ValueAccessor value_accessor;
+};
 
 struct Slice
 {
