@@ -17,6 +17,8 @@
 #include <cctype>
 #include <variant>
 #include <memory>
+#include <limits>
+
 using namespace std;
 
 struct Slice;
