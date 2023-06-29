@@ -102,6 +102,8 @@ void print_help()
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "                 -p is optional if path starts with . and file with that name doesn't exist\n"
+        "                 More complex path expressions: .{id,users[1:-3:2].{name,address}}\n"
+        "                 [[3]] is an index accessor without outputting on the path.\n"
         "  --no-indent   don't indent output\n"
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
