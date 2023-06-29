@@ -96,6 +96,7 @@ options:
                  -p is optional if path starts with . and file with that name doesn't exist
                  More complex path expressions: .{id,users[1:-3:2].{name,address}}
                  [[3]] is an index accessor without outputting on the path.
+                 {user:users:[[1]]}  -- path renaming with accessor. It's a minimal, limited implementation right now.
   --no-indent   don't indent output
   --root        root path, default is json
   --semicolon   add semicolon to the end of each line
