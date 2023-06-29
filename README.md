@@ -217,3 +217,4 @@ cmake install build/
 - the code should be accessible as a library as well, especially when it gets more powerful
 - simply appending GRON code, like setting some paths/values maybe a useful simple feature
 - A fastjq implementation could be created from the learnings of this project
+- --skip-initializations, --output-json
