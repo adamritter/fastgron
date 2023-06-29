@@ -93,8 +93,9 @@ private:
         parseIdentifier(accessor.key);
         if (match(':'))
         {
-            accessor.new_key.emplace();         // Here we separate the emplace operation
-            parseIdentifier(*accessor.new_key); // We dereference the optional to get the string reference
+            accessor.new_key = accessor.key;
+            match('.');
+            parseIdentifier(accessor.key);
             if (match(':'))
             {
                 accessor.value_accessor = parseValueAccessor();
