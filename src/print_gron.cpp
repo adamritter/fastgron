@@ -195,7 +195,7 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             *ptr++ = 'm';
         }
         string_view s = element.raw_json_token();
-        while (s.size() > 0 && s[s.size() - 1] == ' ')
+        while (s.size() > 0 && (s[s.size() - 1] == ' ' || s[s.size() - 1] == '\n'))
         {
             s.remove_suffix(1);
         }

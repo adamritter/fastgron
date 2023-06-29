@@ -87,4 +87,7 @@ if(BASH_PROGRAM)
 
     add_test(multi4 ${BASH_PROGRAM} -c "echo '{\"aa\":[1,2,3],\"b\":[2,3,4],\"c\":[4,5,6]}' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -p '[#][0]'")
     set_tests_properties(multi4 PROPERTIES PASS_REGULAR_EXPRESSION "json.b\\[0\\] = 2")
+
+    add_test(bad_new_line ${BASH_PROGRAM} -c "echo '[{\"a\":1},3]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
+    set_tests_properties(bad_new_line PROPERTIES PASS_REGULAR_EXPRESSION "json\\[0\\].a = 1\njson\\[1\\] = 3")
 endif(BASH_PROGRAM)
