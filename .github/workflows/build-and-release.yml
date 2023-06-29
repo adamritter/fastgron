@@ -219,11 +219,7 @@ jobs:
   homebrew:
     needs:
       [
-        build-linux,
-        build-windows,
-        build-mac,
-        build-linux-without-simd,
-        build-windows-without-simd,
+        release
       ]
     runs-on: ubuntu-latest
     steps:
