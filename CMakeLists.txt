@@ -21,6 +21,7 @@ add_executable(fastgron
     src/print_gron.cpp
     src/print_json.cpp
     src/parse_gron.cpp
+    src/parse_path.cpp
     extern/simdjson/simdjson.cpp
 )
 target_include_directories(fastgron PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include extern/simdjson)

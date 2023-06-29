@@ -18,15 +18,16 @@
 #include <variant>
 using namespace std;
 
-struct AllAccessor;
 struct Slice;
 struct ObjectAccessor;
 struct ObjectAccessors;
+struct AllAccessor;
 
 using ValueAccessor = std::variant<std::monostate,
-                                   Slice,
-                                   ObjectAccessors,
-                                   AllAccessor>;
+                                   std::unique_ptr<Slice>,
+                                   std::unique_ptr<ObjectAccessors>,
+                                   std::unique_ptr<AllAccessor>>;
+
 // Foreach object key or foreach array index
 struct AllAccessor
 {
@@ -36,16 +37,18 @@ struct AllAccessor
 struct Slice
 {
     int start = 0;
+    int end = std::numeric_limits<int>::max();
     int step = 1;
-    int end = -1;
-    bool append_index;
+    bool append_index = true;
     ValueAccessor value_accessor;
 };
 
 struct ObjectAccessors
 {
     std::vector<ObjectAccessor> object_accessors;
-    bool echo_others;
+    bool echo_others = false;
+    // TODO: Implement batching later
+    void batchOrInsert(ObjectAccessor object_accessor);
 };
 
 struct ObjectAccessor
@@ -53,7 +56,39 @@ struct ObjectAccessor
     std::string key;
     std::optional<std::string> new_key;
     ValueAccessor value_accessor;
+
+    inline ObjectAccessor() = default;
+
+    inline ObjectAccessor(std::string key, std::optional<std::string> new_key, ValueAccessor value_accessor)
+        : key(key), new_key(new_key), value_accessor(std::move(value_accessor)){};
+
+    // move constructor
+    inline ObjectAccessor(ObjectAccessor &&other) noexcept
+        : key(std::move(other.key)),
+          new_key(std::move(other.new_key)),
+          value_accessor(std::move(other.value_accessor)){
+
+          };
+
+    // move assignment operator
+    ObjectAccessor &operator=(ObjectAccessor &&other) noexcept
+    {
+        if (this != &other)
+        {
+            key = std::move(other.key);
+            new_key = std::move(other.new_key);
+            value_accessor = std::move(other.value_accessor);
+        }
+        return *this;
+    }
 };
+
+inline bool operator<(const ObjectAccessor &lhs, const ObjectAccessor &rhs)
+{
+    return lhs.key < rhs.key;
+}
+
+ValueAccessor parse_path(std::string_view input);
 
 /*
 

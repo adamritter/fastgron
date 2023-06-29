@@ -1,5 +1,6 @@
 #include "print_filtered_path.hpp"
 #include "simdjson.h"
+#include "parse_path.hpp"
 
 using std::to_string;
 
@@ -9,197 +10,209 @@ void exit_with_error(string message)
     exit(EXIT_FAILURE);
 }
 
-int find_path_end(growing_string &path, int processed)
+#include <string>
+#include <vector>
+#include <iostream>
+#include <string_view>
+
+void print_value_accessor(
+    growing_string &path,
+    const ValueAccessor &valueAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters);
+
+void print_slice(
+    growing_string &path,
+    const Slice &slice, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
 {
-    int end = processed + 1;
-    while (end < path.size() && path.data[end] != '[' && path.data[end] != '.')
+    int start = slice.start;
+    int end = slice.end;
+    if (element.type() == simdjson::ondemand::json_type::array)
     {
-        end++;
+        auto array = element.get_array();
+        if (slice.start < 0 || slice.end < 0)
+        {
+            int n = array.count_elements();
+            if (slice.start < 0)
+            {
+                start += n;
+            }
+            if (slice.end < 0)
+            {
+                end += n;
+            }
+        }
+
+        int index = 0;
+        int path_size = path.size();
+        for (auto child : array)
+        {
+            if (index >= start && (index < end) && (slice.step == 1 || (index - start) % slice.step == 0))
+            {
+                path.append("[");
+                path.append(std::to_string(index));
+                path.append("]");
+                print_value_accessor(path, slice.value_accessor, child.value(), flags, filters);
+                path.erase(path_size);
+            }
+            index++;
+        }
     }
-    return end;
+    else
+    {
+        exit_with_error("Element is not an array or object at path " + string(path));
+    }
 }
 
-void process_element_as_object(growing_string &path, int processed, int end, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+void print_object_accessors(
+    growing_string &path,
+    const ObjectAccessors &objectAccessors, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
 {
-    cerr << "process_element_as_object: " << string(path) << ", processed: " << processed << ", end: " << end << "\n";
-    growing_string path2 = path.view().substr(0, processed);
-    for (auto field : element.get_object())
+    int path_size = path.size();
+    if (element.type() == simdjson::ondemand::json_type::object)
     {
-        string_view key = field.unescaped_key().value();
-        if (is_js_identifier(key))
+        auto object = element.get_object();
+        for (auto field : object)
         {
-            path2.append(".");
-            path2.append(key);
-        }
-        else
-        {
-            path2.append("[\"");
-            path2.append(key);
-            path2.append("\"]");
-        }
-
-        int processed2 = path2.len;
-        path2.append(path.view().substr(find_path_end(path, processed)));
-        print_filtered_path(path2, processed2, field.value(), flags, filters);
-        path2.erase(processed);
-    }
-}
-
-void process_element_as_array(growing_string &path, int processed, int end, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
-{
-    int index = 0;
-    growing_string path2 = path.view().substr(0, processed);
-    for (auto child : element.get_array())
-    {
-        path2.append("[");
-        path2.append(std::to_string(index++));
-        path2.append("]");
-
-        int processed2 = path2.len;
-        path2.append(path.view().substr(find_path_end(path, processed)));
-        print_filtered_path(path2, processed2, child.value(), flags, filters);
-        path2.erase(processed);
-    }
-}
-
-void print_filtered_path(growing_string &path, int processed, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
-{
-    if (path.size() == processed)
-    {
-        recursive_print_gron(element, path, batched_out, flags, filters);
-    }
-    else if (path.data[processed] == '.')
-    {
-        int end = processed + 1;
-        while (end < path.size() && path.data[end] != '[' && path.data[end] != '.')
-        {
-            end++;
-        }
-        string_view key(&path.data[processed + 1], end - processed - 1);
-        if (key == "#")
-        {
-            if (element.type() == simdjson::ondemand::json_type::array)
+            string_view key = field.unescaped_key().value();
+            // Check if the key matches any objectAccessor
+            bool foundMatch = false;
+            for (const auto &objectAccessor : objectAccessors.object_accessors)
             {
-                process_element_as_array(path, processed, end, element, flags, filters);
-            }
-            else if (element.type() == simdjson::ondemand::json_type::object)
-            {
-                process_element_as_object(path, processed, end, element, flags, filters);
-            }
-            else
-            {
-                exit_with_error("Element is not an array or object at path " + string(path).substr(0, processed + 1));
-            }
-        }
-        else if (element.type() == simdjson::ondemand::json_type::object)
-        {
-            auto field = element.find_field(key);
-            if (field.error() == simdjson::SUCCESS)
-            {
-                print_filtered_path(path, end, field.value(), flags, filters);
-            }
-            else
-            {
-                if (field.error() == 19)
+                if (objectAccessor.key == key)
                 {
-                    cerr << "field error: key: " << key << " not found in path " << string(path) << "\n";
+                    foundMatch = true;
+                    string key_to_use = objectAccessor.new_key.value_or(objectAccessor.key);
+
+                    if (is_js_identifier(key_to_use))
+                    {
+                        path.append(".");
+                        path.append(key_to_use);
+                    }
+                    else
+                    {
+                        path.append("[\"");
+                        path.append(key_to_use);
+                        path.append("\"]");
+                    }
+
+                    print_value_accessor(path, objectAccessor.value_accessor, field.value(), flags, filters);
+
+                    path.erase(path_size);
+
+                    break;
+                }
+            }
+
+            if (!foundMatch && objectAccessors.echo_others)
+            {
+                if (is_js_identifier(key))
+                {
+                    path.append(".");
+                    path.append(key);
                 }
                 else
                 {
-                    cerr << "field error: " << (int)field.error() << "\n";
+                    path.append("[\"");
+                    path.append(key);
+                    path.append("\"]");
                 }
-            }
-        }
-        else if (isdigit(key[0]) && element.type() == simdjson::ondemand::json_type::array)
-        {
-            int index = stoi(string(key));
-            auto child = element.at(index);
-            if (child.error() == simdjson::SUCCESS)
-            {
-                growing_string path2 = path.view().substr(0, processed);
-                path2.append("[");
-                path2.append(key);
-                path2.append("]");
-                path2.append(path.view().substr(end));
-                print_filtered_path(path2, end + 1, child.value(), flags, filters);
-            }
-            else
-            {
-                cerr << "child error: " << (int)child.error() << "\n";
-            }
-        }
-    }
-    else if (path.data[processed] == '[')
-    {
-        int end = processed + 1;
-        if (isdigit(path.data[end]))
-        {
-            while (isdigit(path.data[end]))
-            {
-                end++;
-            }
-            if (path.data[end] == ']')
-            {
-                int index = stoi(string(&path.data[processed + 1], end - processed - 1));
-                if (element.type() != simdjson::ondemand::json_type::array)
-                {
-                    exit_with_error("Element is not an array at path " + string(path).substr(0, processed + 1));
-                }
-                auto child = element.at(index);
-                if (child.error() == simdjson::SUCCESS)
-                {
-                    print_filtered_path(path, end + 1, child.value(), flags, filters);
-                }
-                else
-                {
-                    cerr << "child error: " << (int)child.error() << "\n";
-                }
-            }
-        }
-        else if (path.data[end] == '"')
-        {
-            while (path.data[end] != '"')
-            {
-                end++;
-            }
-            end++;
-            if (path.data[end] == ']')
-            {
-                string_view key(&path.data[processed + 2], end - processed - 3);
-                auto field = element.find_field(key);
-                if (field.error() == simdjson::SUCCESS)
-                {
-                    print_filtered_path(path, end + 1, field.value(), flags, filters);
-                }
-            }
-        }
-        else if (path.data[end] == '#')
-        {
-            end++;
-            if (path.data[end] == ']')
-            {
-                end++;
-                if (element.type() == simdjson::ondemand::json_type::array)
-                {
-                    process_element_as_array(path, processed, end, element, flags, filters);
-                }
-                else if (element.type() == simdjson::ondemand::json_type::object)
-                {
-                    process_element_as_object(path, processed, end, element, flags, filters);
-                }
-                else
-                {
-                    exit_with_error("Element is not an array or object at path " + string(path).substr(0, processed + 1));
-                }
-            }
-            else
-            {
-                exit_with_error("Invalid path: " + string(path) + ", processed: " + std::to_string(processed));
+
+                recursive_print_gron(field.value(), path, batched_out, flags, filters);
+
+                path.erase(path_size);
             }
         }
     }
     else
     {
-        exit_with_error("Invalid path: " + string(path) + ", processed: " + std::to_string(processed));
+        exit_with_error("Element is not an object at path " + string(path));
     }
+}
+
+void print_all_accessor(
+    growing_string &path,
+    const AllAccessor &allAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+{
+    if (element.type() == simdjson::ondemand::json_type::array)
+    {
+        auto array = element.get_array();
+        int index = 0;
+        int path_size = path.size();
+        for (auto child : array)
+        {
+            path.append("[");
+            path.append(std::to_string(index++));
+            path.append("]");
+            print_value_accessor(path, allAccessor.value_accessor, child.value(), flags, filters);
+            path.erase(path_size);
+        }
+    }
+    else if (element.type() == simdjson::ondemand::json_type::object)
+    {
+        auto object = element.get_object();
+        int path_size = path.size();
+        for (auto field : object)
+        {
+            string_view key = field.unescaped_key().value();
+
+            if (is_js_identifier(key))
+            {
+                path.append(".");
+                path.append(key);
+            }
+            else
+            {
+                path.append("[\"");
+                path.append(key);
+                path.append("\"]");
+            }
+
+            print_value_accessor(path, allAccessor.value_accessor, field.value(), flags, filters);
+            path.erase(path_size);
+        }
+    }
+    else
+    {
+        exit_with_error("Element is not an array or object at path " + string(path));
+    }
+}
+
+void print_value_accessor(
+    growing_string &path,
+    const ValueAccessor &valueAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+{
+    if (std::holds_alternative<std::monostate>(valueAccessor))
+    {
+        // No value accessor present, print the element
+        recursive_print_gron(element, path, batched_out, flags, filters);
+    }
+    else if (std::holds_alternative<std::unique_ptr<Slice>>(valueAccessor))
+    {
+        // Value accessor is a slice, handle it
+        const auto &slicePtr = std::get<std::unique_ptr<Slice>>(valueAccessor);
+        print_slice(path, *slicePtr, element, flags, filters);
+    }
+    else if (std::holds_alternative<std::unique_ptr<ObjectAccessors>>(valueAccessor))
+    {
+        // Value accessor is a set of object accessors, handle it
+        const auto &objectAccessorsPtr = std::get<std::unique_ptr<ObjectAccessors>>(valueAccessor);
+        print_object_accessors(path, *objectAccessorsPtr, element, flags, filters);
+    }
+    else if (std::holds_alternative<std::unique_ptr<AllAccessor>>(valueAccessor))
+    {
+        // Value accessor is an all accessor, handle it
+        const auto &allAccessorPtr = std::get<std::unique_ptr<AllAccessor>>(valueAccessor);
+        print_all_accessor(path, *allAccessorPtr, element, flags, filters);
+    }
+    else
+    {
+        exit_with_error("Unknown value accessor type");
+    }
+}
+
+void print_filtered_path(growing_string &path, int processed, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+{
+    string_view input = path.view().substr(processed);
+    ValueAccessor valueAccessor = parse_path(input);
+    path.erase(processed);
+    print_value_accessor(path, valueAccessor, element, flags, filters);
 }
