@@ -5,6 +5,8 @@
 #include <variant>
 #include "parse_path.hpp"
 #include <iostream>
+#include <algorithm>
+
 using namespace std;
 
 bool isIdentifierChar(char c)
