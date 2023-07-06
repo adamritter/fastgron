@@ -105,12 +105,14 @@ void print_help()
         "                 More complex path expressions: .{id,users[1:-3:2].{name,address}}\n"
         "                 [[3]] is an index accessor without outputting on the path.\n"
         "  --no-indent   don't indent output\n"
+        "  --no-newline  no newline inside JSON output\n"
         "  --root        root path, default is json\n"
         "  --semicolon   add semicolon to the end of each line\n"
         "  --no-spaces   don't add spaces around =\n"
         "  -c, --color   colorize output\n"
         "  --no-color    don't colorize output\n"
-        "\nHome page with more information: https://github.com/adamritter/fastgron\n";
+        "\nHome page with more information: https://github.com/adamritter/fastgron\n"
+        "\nIf you have a feature that would help you, open an issue here:\nhttps://github.com/adamritter/fastgron/issues\n";
 }
 
 void print_version()
@@ -212,7 +214,7 @@ std::string download(std::string url)
     exit(EXIT_FAILURE);
 #endif
 }
-unsigned flags = SPACES | INDENT;
+unsigned flags = SPACES | INDENT | NEWLINE;
 vector<string> filters;
 
 options parse_options(int argc, char *argv[])
@@ -290,6 +292,10 @@ options parse_options(int argc, char *argv[])
         else if (strcmp(argv[i], "--no-indent") == 0)
         {
             flags &= ~INDENT;
+        }
+        else if (strcmp(argv[i], "--no-newline") == 0)
+        {
+            flags &= ~NEWLINE;
         }
         else if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--path") == 0)
         {
@@ -456,7 +462,27 @@ int main(int argc, char *argv[])
             cerr << "Builder is not assigned\n";
             return EXIT_FAILURE;
         }
-        print_json(builder, flags);
+        if (opts.stream)
+        {
+            flags &= ~NEWLINE;
+            flags &= ~INDENT;
+            if (std::holds_alternative<Vector>(builder))
+            {
+                for (auto &item : std::get<Vector>(builder).vector)
+                {
+                    print_json(item, flags);
+                }
+            }
+            else
+            {
+                // Error: not a stream
+                cerr << "Error: input gron file must be an array to be able to output a stream\n";
+            }
+        }
+        else
+        {
+            print_json(builder, flags);
+        }
         return EXIT_SUCCESS;
     }
 
@@ -468,7 +494,8 @@ int main(int argc, char *argv[])
         gprint(root + " = [];\n", batched_out, flags, filters);
         for (auto doc : docs)
         {
-            growing_string path = growing_string(root).append("[").append(to_string(index++)).append("]");
+            growing_string path = growing_string(root);
+            path.append("[").append(to_string(index++)).append("]");
             recursive_print_gron(doc, path, batched_out, flags, filters);
         }
     }

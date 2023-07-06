@@ -6,7 +6,11 @@ void print_json_inner(Builder builder, const unsigned flags, growing_string &ind
 
 void print_vector(Vector &vector_holder, const unsigned flags, growing_string &indent)
 {
-    batched_print("[\n");
+    batched_out.append('[');
+    if (flags & NEWLINE)
+    {
+        batched_out.append('\n');
+    }
     if (flags & INDENT)
     {
         indent.append("  ");
@@ -16,7 +20,11 @@ void print_vector(Vector &vector_holder, const unsigned flags, growing_string &i
     {
         if (!first)
         {
-            batched_print(",\n");
+            batched_out.append(',');
+            if (flags & NEWLINE)
+            {
+                batched_out.append('\n');
+            }
         }
         first = false;
         batched_print(indent.view());
@@ -26,14 +34,22 @@ void print_vector(Vector &vector_holder, const unsigned flags, growing_string &i
     {
         indent.erase(indent.size() - 2);
     }
-    batched_print("\n");
+    // batched_print("\n");
+    if (flags & NEWLINE)
+    {
+        batched_out.append('\n');
+    }
     batched_print(indent.view());
     batched_print("]");
 }
 
 void print_map(Map &map_holder, const unsigned flags, growing_string &indent)
 {
-    batched_print("{\n");
+    batched_print('{');
+    if (flags & NEWLINE)
+    {
+        batched_print('\n');
+    }
     if (flags & INDENT)
     {
         indent.append("  ");
@@ -56,7 +72,10 @@ void print_map(Map &map_holder, const unsigned flags, growing_string &indent)
     {
         indent.erase(indent.size() - 2);
     }
-    batched_print("\n");
+    if (flags & NEWLINE)
+    {
+        batched_print("\n");
+    }
     batched_print(indent.view());
     batched_print("}");
 }
@@ -88,6 +107,6 @@ void print_json(Builder builder, const unsigned flags)
     growing_string indent;
     batched_out.reserve_extra(1000000);
     print_json_inner(builder, flags, indent);
-    batched_print("\n");
+    batched_print("\n"); // Final newline is always printed
     batched_print_flush();
 }
