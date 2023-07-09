@@ -51,7 +51,9 @@ struct options
     bool version;
     bool ungron;
     std::string filtered_path;
+    std::vector<std::string> headers; // for storing headers
 };
+
 string root = "json";
 
 string user_agent = "fastgron";
@@ -99,6 +101,7 @@ void print_help()
         "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
+        "  --header Name:value       set custom HTTP header, can be used multiple times\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
         "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
         "                 -p is optional if path starts with . and file with that name doesn't exist\n"
@@ -177,16 +180,25 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string2 *s)
     return size * nmemb;
 }
 
-std::string download(std::string url)
+std::string download(options opts)
 {
+
 #ifdef CURL_FOUND
+    std::string url = opts.filename;
     CURL *curl;
     CURLcode res;
+    struct curl_slist *headers = NULL;
 
     curl = curl_easy_init();
     string r;
     if (curl)
     {
+        for (const auto &header : opts.headers)
+        {
+            cout << "Adding header: " << header << "\n";
+            headers = curl_slist_append(headers, header.c_str());
+        }
+
         struct string2 s;
         init_string(&s);
 
@@ -194,6 +206,8 @@ std::string download(std::string url)
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.c_str());
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
         res = curl_easy_perform(curl);
 
         r = string_view(s.ptr, s.len);
@@ -206,6 +220,7 @@ std::string download(std::string url)
         free(s.ptr);
 
         /* always cleanup */
+        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
     return r;
@@ -315,6 +330,16 @@ options parse_options(int argc, char *argv[])
             }
             root = argv[++i];
         }
+        else if (strcmp(argv[i], "--header") == 0)
+        {
+            if (i + 1 >= argc)
+            {
+                cerr << "Missing argument for --header\n";
+                exit(EXIT_FAILURE);
+            }
+            opts.headers.push_back(argv[++i]);
+        }
+
         else if (strcmp(argv[i], "--semicolon") == 0)
         {
             flags |= SEMICOLON;
@@ -406,7 +431,7 @@ int main(int argc, char *argv[])
     }
     else if (curl_found && opts.filename.compare(0, 7, "http://") == 0 || opts.filename.compare(0, 8, "https://") == 0)
     {
-        json = padded_string(download(opts.filename));
+        json = padded_string(download(opts));
     }
     else
     {
