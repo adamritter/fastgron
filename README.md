@@ -91,6 +91,7 @@ options:
   -i, --ignore-case  ignore case distinctions in PATTERN
   --sort sort output by key
   --user-agent   set user agent
+  --header Name:value     set custom HTTP header, can be used multiple times
   -u, --ungron   ungron: convert gron output back to JSON
   -p, -path      filter path, for example .#.3.population or cities.#.population
                  -p is optional if path starts with . and file with that name doesn't exist
