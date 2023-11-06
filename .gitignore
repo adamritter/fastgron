@@ -36,3 +36,8 @@
 
 # Ignore all settings within .vscode folder
 /.vscode/
+
+# Nix
+/.direnv/
+/.pre-commit-config.yaml
+/result

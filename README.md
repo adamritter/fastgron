@@ -34,21 +34,11 @@ fastgron can work backwards too, enabling you to turn your filtered data back in
 
 ## Quick Install
 
-MacOS:
-
-```bash
-brew install fastgron --build-from-source
-```
-
-Ubuntu Linux, Windows: Download the latest binary from [releases](https://github.com/adamritter/fastgron/releases)
-
-Warning: On Windows libcurl support is missing from the released binary, so http / https URLs can't yet be read directly
-
-Arch Linux:
-
-```bash
-yay -S fastgron-git
-```
+- Arch: `yay -S fastgron-git`
+- Homebrew: `brew install fastgron --build-from-source`
+- Nix: `nix profile install github:adamritter/fastgron#fastgron`
+- Ubuntu: Download the latest binary from [releases](https://github.com/adamritter/fastgron/releases).
+- Windows: Download the latest binary from [releases](https://github.com/adamritter/fastgron/releases). Note that libcurl support is missing from the released binary, so `http` and `https` URLs can't yet be read directly.
 
 ## Usage
 
@@ -182,7 +172,7 @@ json.features[10000].properties.LOT_NUM = "091"
 build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.07s user 0.10s system 95% cpu 0.176 total
 ```
 
-## Installation
+## Building
 
 To build and run this project, you need:
 
@@ -190,7 +180,17 @@ To build and run this project, you need:
 - [CMake](https://cmake.org/) (version 3.8 or higher)
 - libcurl installed (Optional)
 
-## Building and Installation for Linux
+### Nix
+
+1. Enable [Flakes](https://nixos.wiki/wiki/Flakes) locally.
+1. Run `nix build` to build the `fastgron` binary locally.
+
+For a development environment, either:
+
+- Enable `direnv` in your shell then approve the use of [`.envrc`](./.envrc) via `direnv allow` or
+- explicitly enter a development shell via `nix develop`.
+
+### Ubuntu
 
 Here are the steps to build, test, and install `fastgron`:
 
