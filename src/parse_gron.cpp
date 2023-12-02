@@ -1,5 +1,7 @@
 #include <string_view>
 #include "parse_gron.hpp"
+#include <stdexcept>
+
 
 // BUG: ["..."] is not handled
 void parse_gron(string_view line, Builder &builder, int offset,
