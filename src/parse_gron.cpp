@@ -35,6 +35,40 @@ void parse_gron(string_view line, Builder &builder, int offset,
         parse_gron_builder_offsets.emplace_back(offset + end);
         parse_gron(line.substr(end), child->second, offset + end, parse_gron_builders, parse_gron_builder_offsets);
     }
+    else if (line[0] == '[' && line[1] == '"')
+    {
+        if (std::holds_alternative<string_variant>(builder))
+        {
+            builder.emplace<Map>();
+        }
+        auto &map_alt = std::get<Map>(builder).map;
+
+        // find end of key
+        size_t end = 2;
+        while (end < line.size() && line[end] != '"')
+        {
+            end++;
+        }
+        string key(line.substr(2, end - 1));
+        auto child = map_alt.find(key);
+        if (child == map_alt.end())
+        {
+            child = map_alt.emplace(key, string_variant()).first;
+        }
+        parse_gron_builders.push_back(&child->second);
+        end++;
+        while (end < line.size() && line[end] == ' ')
+        {
+            end++;
+        }
+        if (end == line.size() || line[end] != ']')
+        {
+            throw std::runtime_error("Expected ]");
+        }
+        end++;
+        parse_gron_builder_offsets.emplace_back(offset + end);
+        parse_gron(line.substr(end), child->second, offset + end, parse_gron_builders, parse_gron_builder_offsets);
+    }
     else if (line[0] == '[' && isdigit(line[1]))
     {
         if (std::holds_alternative<string_variant>(builder))
