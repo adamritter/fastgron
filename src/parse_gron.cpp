@@ -37,6 +37,7 @@ void parse_gron(string_view line, Builder &builder, int offset,
     }
     else if (line[0] == '[' && line[1] == '"')
     {
+        // TODO: implement escaping
         if (std::holds_alternative<string_variant>(builder))
         {
             builder.emplace<Map>();
