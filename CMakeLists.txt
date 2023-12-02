@@ -90,4 +90,11 @@ if(BASH_PROGRAM)
 
     add_test(bad_new_line ${BASH_PROGRAM} -c "echo '[{\"a\":1},3]' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron")
     set_tests_properties(bad_new_line PROPERTIES PASS_REGULAR_EXPRESSION "json\\[0\\].a = 1\njson\\[1\\] = 3")
+
+    add_test(ungron ${BASH_PROGRAM} -c "echo 'json.foo.abc = \"xxx\"' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -u")
+    set_tests_properties(ungron PROPERTIES PASS_REGULAR_EXPRESSION "abc.*xxx")
+
+    add_test(ungron2 ${BASH_PROGRAM} -c "echo 'json.foo[\"abc\"] = \"xxx\"' | ${CMAKE_CURRENT_BINARY_DIR}/fastgron -u")
+    set_tests_properties(ungron2 PROPERTIES PASS_REGULAR_EXPRESSION "abc.*xxx")
+
 endif(BASH_PROGRAM)
