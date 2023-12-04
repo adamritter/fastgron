@@ -164,7 +164,8 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
     {
         size_t orig_out_len = out_growing_string.size();
         size_t path_size = path.size();
-        out_growing_string.reserve_extra(path_size + orig_out_len + 30);
+        string_view s = element.raw_json_token();
+        out_growing_string.reserve_extra(path_size + orig_out_len + s.length() + 30);
         char *ptr = &out_growing_string.data[orig_out_len];
         memcpy(ptr, path.data, path_size);
         ptr += path_size;
@@ -194,7 +195,6 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             }
             *ptr++ = 'm';
         }
-        string_view s = element.raw_json_token();
         while (s.size() > 0 && (s[s.size() - 1] == ' ' || s[s.size() - 1] == '\n'))
         {
             s.remove_suffix(1);
