@@ -6,6 +6,8 @@
 using std::max;
 using std::string_view;
 
+// Provides a dynamic string storage that grows as needed.
+// Unlike std::string, it doesn't shrink the allocated storage capacity when the end of the string is erased. 
 struct growing_string
 {
     char *data;

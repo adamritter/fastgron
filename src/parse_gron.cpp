@@ -52,7 +52,7 @@ void parse_gron(string_view line, Builder &builder, int offset,
         {
             end++;
         }
-        string key(line.substr(2, end - 1));
+        string key(line.substr(2, end - 2));
         auto child = map_alt.find(key);
         if (child == map_alt.end())
         {

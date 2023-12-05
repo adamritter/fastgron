@@ -82,6 +82,7 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
         path.append('\n');
         gprint(path, out_growing_string, flags, filters);
         path.erase(base_len);
+        // fastgron can directly stream results to out_growing_string if we don't need to sort the output
         if (flags & SORT_OUTPUT)
         {
             std::vector<std::pair<string, string>> fields;
