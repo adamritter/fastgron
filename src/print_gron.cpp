@@ -89,15 +89,18 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             growing_string out2;
             for (auto field : element.get_object())
             {
-                auto key = field.unescaped_key();
-                string key_str(key.value());
-                if (!is_js_identifier(key.value()))
+                auto key_orig = field.key();
+                auto key_value_raw = key_orig.value().raw();
+                auto key =  string_view(key_value_raw, raw_json_string_length(key_value_raw));
+
+                string key_str(key);
+                if (!is_js_identifier(key))
                 {
                     if (flags & COLOR)
                         path.append("\033[1;34m[\033[1;35m\"");
                     else
                         path.append("[\"");
-                    path.append(key.value());
+                    path.append(key);
 
                     if (flags & COLOR)
                         path.append("\"\033[1;34m]\033[0m");
@@ -109,7 +112,7 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
                     path.append(".");
                     if (flags & COLOR)
                         path.append("\033[1;34m");
-                    path.append(key.value());
+                    path.append(key);
                     if (flags & COLOR)
                         path.append("\033[0m");
                 }
@@ -130,14 +133,16 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
 
             for (auto field : element.get_object())
             {
-                auto key = field.unescaped_key();
-                if (!is_js_identifier(key.value()))
+                auto key_orig = field.key();
+                auto key_value_raw = key_orig.value().raw();
+                auto key =  string_view(key_value_raw, raw_json_string_length(key_value_raw));
+                if (!is_js_identifier(key))
                 {
                     if (flags & COLOR)
                         path.append("\033[1;34m[\033[1;35m\"");
                     else
                         path.append("[\"");
-                    path.append(key.value());
+                    path.append(key);
                     if (flags & COLOR)
                         path.append("\"\033[1;34m]\033[0m");
                     else
@@ -148,7 +153,7 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
                     path.append(".");
                     if (flags & COLOR)
                         path.append("\033[1;34m");
-                    path.append(key.value());
+                    path.append(key);
                     if (flags & COLOR)
                         path.append("\033[0m");
                 }

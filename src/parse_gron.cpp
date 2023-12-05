@@ -1,5 +1,6 @@
 #include <string_view>
 #include "parse_gron.hpp"
+#include "jsonutils.hpp"
 #include <stdexcept>
 
 
@@ -48,11 +49,13 @@ void parse_gron(string_view line, Builder &builder, int offset,
 
         // find end of key
         size_t end = 2;
-        while (end < line.size() && line[end] != '"')
+        size_t len = raw_json_string_length(line.substr(2));
+        if (len == -1)
         {
-            end++;
+            throw std::runtime_error("Expected \"");
         }
-        string key(line.substr(2, end - 2));
+        end += len;
+        string key(line.substr(2, len));
         auto child = map_alt.find(key);
         if (child == map_alt.end())
         {

@@ -70,6 +70,10 @@ inline int raw_json_string_length(string_view str)
                 return s - str.begin();
             }
             break;
+        case '\n':
+        case '\r':
+        case 0:
+            return -1;
         default:
             if (in_escape)
             {
