@@ -86,6 +86,44 @@ inline int raw_json_string_length(string_view str)
     return -1;
 }
 
+
+// Returns -1 if end is reached before closing quote
+inline int raw_json_string_length(const char *s)
+{
+    const char *begin = s;
+    bool in_escape = false;
+    while (s)
+    {
+        switch (*s)
+        {
+        case '\\':
+            in_escape = !in_escape;
+            break;
+        case '"':
+            if (in_escape)
+            {
+                in_escape = false;
+            }
+            else
+            {
+                return s - begin;
+            }
+            break;
+        case '\n':
+        case '\r':
+        case 0:
+            return -1;
+        default:
+            if (in_escape)
+            {
+                in_escape = false;
+            }
+        }
+        s++;
+    }
+    return -1;
+}
+
 inline bool can_show(string_view s, const unsigned flags, vector<string> &filters)
 {
     if (!filters.empty())
