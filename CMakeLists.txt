@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(fastgron VERSION 0.7.2 LANGUAGES CXX)
+project(fastgron VERSION 0.7.3 LANGUAGES CXX)
 
 set(FASTGRON_VERSION "${fastgron_VERSION}")
 
