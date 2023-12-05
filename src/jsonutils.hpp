@@ -2,6 +2,7 @@
 #include <string_view>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using std::string;
 using std::string_view;
