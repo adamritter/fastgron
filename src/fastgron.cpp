@@ -356,7 +356,7 @@ options parse_options(int argc, char *argv[])
         {
             flags &= ~COLOR;
         }
-        else if (argv[i][0] == '-')
+        else if (argv[i][0] == '-' && argv[i] != string("-"))
         {
             cerr << "Unknown option: " << argv[i] << "\n";
             exit(EXIT_FAILURE);
