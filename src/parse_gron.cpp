@@ -3,7 +3,6 @@
 #include "jsonutils.hpp"
 #include <stdexcept>
 
-
 // BUG: ["..."] is not handled
 void parse_gron(string_view line, Builder &builder, int offset,
                 vector<Builder *> &parse_gron_builders,

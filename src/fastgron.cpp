@@ -467,6 +467,11 @@ int main(int argc, char *argv[])
             {
                 common++;
             }
+            // if it's not a token ending, make sure we don't use the last token
+            if (common < line.size() && line[common] != ' ' && line[common] != '=' && line[common] != '.' && line[common] != '[')
+            {
+                common--;
+            }
             int index = 0;
             while (index < parse_gron_builder_offsets.size() && parse_gron_builder_offsets[index] <= common)
             {
