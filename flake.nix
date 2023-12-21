@@ -67,6 +67,10 @@
           check.enable = true;
           settings.hooks = {
             alejandra.enable = true;
+            clang-format = {
+              enable = true;
+              excludes = ["extern/.*"];
+            };
           };
         };
 

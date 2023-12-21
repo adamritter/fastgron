@@ -1,0 +1,15 @@
+---
+BasedOnStyle: LLVM
+Cpp11BracedListStyle: true
+IndentWidth: 4
+AlignAfterOpenBracket: BlockIndent
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  BeforeElse: true
+  SplitEmptyFunction: false
+BinPackParameters: false
+BreakBeforeBraces: Allman
