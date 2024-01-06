@@ -7,8 +7,8 @@ fastgron transforms JSON into discrete assignments to make it easier to grep for
 `fastgron` is a high-performance JSON to GRON converter, developed in C++20, utilizing simdjson library.
 It's 50x faster than [gron](https://github.com/tomnomnom/gron) on big files (400MB/s input / 1.8GB/s output on M1 Macbook Pro), so it makes big JSON files greppable.
 
-```bash
-> fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author
+```console
+$ fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author
 json[0].commit.author = {}
 json[0].commit.author.name = "adamritter"
 json[0].commit.author.email = "58403584+adamritter@users.noreply.github.com"
@@ -17,8 +17,8 @@ json[0].commit.author.date = "2023-05-30T18:04:25Z"
 
 fastgron can work backwards too, enabling you to turn your filtered data back into JSON:
 
-```bash
-> fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author | fastgron --ungron
+```console
+$ fastgron "https://api.github.com/repos/adamritter/fastgron/commits?per_page=1" | fgrep commit.author | fastgron --ungron
 [
   {
     "commit": {
@@ -42,8 +42,8 @@ fastgron can work backwards too, enabling you to turn your filtered data back in
 
 ## Usage
 
-```bash
-> cat testdata/two.json
+```console
+$ cat testdata/two.json
 {
     "name": "Tom",
     "github": "https://github.com/tomnomnom/",
@@ -53,7 +53,10 @@ fastgron can work backwards too, enabling you to turn your filtered data back in
         "twitter": "@TomNomNom"
     }
 }
-> fastgron testdata/two.json
+```
+
+```console
+$ fastgron testdata/two.json
 json = {}
 json.name = "Tom"
 json.github = "https://github.com/tomnomnom/"
@@ -64,8 +67,10 @@ json.likes[2] = "meat"
 json.contact = {}
 json.contact.email = "mail@tomnomnom.com"
 json.contact.twitter = "@TomNomNom"
+```
 
-> fastgron --help
+```console
+$ fastgron --help
 Usage: fastgron [OPTIONS] [FILE | URL] [.path]
 
 positional arguments:
@@ -100,7 +105,7 @@ The file name can be - or missing, in that case the data is read from stdin.
 
 ## JSON lines (-s or --stream)
 
-```fastgron testdata/stream.json -s
+```js
 json = []
 json[0] = {}
 json[0].one = 1
@@ -160,17 +165,24 @@ gron -u citylots.gson > c3.json  66.99s user 61.06s system 189% cpu 1:07.75 tota
 
 Path finding is 18x faster than jq and 5x faster than jj:
 
-```bash
-> time jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json
-"091"
-jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json  2.91s user 0.28s system 97% cpu 3.252 total
-> time jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
-"091"
-jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.87s user 0.71s system 161% cpu 0.972 total
-> time build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
-json.features[10000].properties.LOT_NUM = "091"
-build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.07s user 0.10s system 95% cpu 0.176 total
-```
+- `jq`: 3.252s
+  ```console
+  $ time jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json
+  "091"
+  jq -cM ".features[10000].properties.LOT_NUM" < ~/Downloads/citylots.json  2.91s user 0.28s system 97% cpu 3.252 total
+  ```
+- `jj`: 0.972s
+   ```console
+   $ time jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
+   "091"
+   jj -r features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.87s user 0.71s system 161% cpu 0.972 total
+   ```
+- `fastgron`: 0.176s
+   ```console
+   $ time build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json
+   json.features[10000].properties.LOT_NUM = "091"
+   build/fastgron .features.10000.properties.LOT_NUM < ~/Downloads/citylots.json  0.07s user 0.10s system 95% cpu 0.176 total
+   ```
 
 ## Building
 
