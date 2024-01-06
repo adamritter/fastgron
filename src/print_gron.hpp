@@ -1,19 +1,24 @@
 #pragma once
 
-#include "simdjson.h"
-#include "jsonutils.hpp"
-#include "growing_string.hpp"
 #include "batched_print.hpp"
+#include "growing_string.hpp"
+#include "jsonutils.hpp"
+#include "simdjson.h"
 #include <iostream>
-#include <vector>
 #include <string>
 #include <string_view>
+#include <vector>
 using simdjson::ondemand::value;
 using std::string;
 using std::string_view;
 using std::vector;
-void recursive_print_gron(simdjson::ondemand::value element, growing_string &path, growing_string &out_growing_string,
-                          const unsigned flags, vector<string> &filters);
+void recursive_print_gron(
+    simdjson::ondemand::value element,
+    growing_string &path,
+    growing_string &out_growing_string,
+    const unsigned flags,
+    vector<string> &filters
+);
 
 inline growing_string &colorize_matches(string_view s, vector<string> &filters)
 {
@@ -47,7 +52,12 @@ inline growing_string &colorize_matches(string_view s, vector<string> &filters)
     return out;
 }
 
-inline void gprint(string_view s, growing_string &out_growing_string, const unsigned flags, vector<string> &filters)
+inline void gprint(
+    string_view s,
+    growing_string &out_growing_string,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     if (!can_show(s, flags, filters))
     {

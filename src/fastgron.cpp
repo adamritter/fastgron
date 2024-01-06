@@ -1,14 +1,14 @@
 #include "simdjson.h"
+#include <algorithm>
+#include <cstring> // for strcmp
 #include <functional>
 #include <iostream>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <string_view>
 #include <map>
-#include <cstring> // for strcmp
-#include <variant>
+#include <string>
+#include <string_view>
 #include <sys/stat.h>
+#include <variant>
+#include <vector>
 #include <version.h>
 
 #ifndef FASTGRON_VERSION
@@ -34,12 +34,12 @@ using namespace std;
 
 string out;
 
-#include "growing_string.hpp"
 #include "batched_print.hpp"
+#include "growing_string.hpp"
 #include "jsonutils.hpp"
-#include "print_gron.hpp"
-#include "print_filtered_path.hpp"
 #include "parse_gron.hpp"
+#include "print_filtered_path.hpp"
+#include "print_gron.hpp"
 #include "print_json.hpp"
 
 // Parse command-line options
@@ -70,8 +70,10 @@ bool is_url(string_view url)
 void print_simdjson_version()
 {
     cerr << "simdjson v" << SIMDJSON_VERSION << endl;
-    cerr << "  Detected the best implementation for your machine: " << simdjson::get_active_implementation()->name();
-    cerr << "(" << simdjson::get_active_implementation()->description() << ")" << endl;
+    cerr << "  Detected the best implementation for your machine: "
+         << simdjson::get_active_implementation()->name();
+    cerr << "(" << simdjson::get_active_implementation()->description() << ")"
+         << endl;
 }
 
 growing_string indent = "";
@@ -96,17 +98,24 @@ void print_help()
         "  -V, --version  show version information and exit\n"
         "  -s, --stream   enable stream mode\n"
         "  -F, --fixed-string PATTERN  filter output by fixed string.\n"
-        "                     If -F is provided multiple times, multiple patterns are searched.\n"
-        "  -v, --invert-match select non-matching lines for fixed string search\n"
+        "                     If -F is provided multiple times, multiple "
+        "patterns are searched.\n"
+        "  -v, --invert-match select non-matching lines for fixed string "
+        "search\n"
         "  -i, --ignore-case  ignore case distinctions in PATTERN\n"
         "  --sort sort output by key\n"
         "  --user-agent   set user agent\n"
-        "  --header Name:value       set custom HTTP header, can be used multiple times\n"
+        "  --header Name:value       set custom HTTP header, can be used "
+        "multiple times\n"
         "  -u, --ungron   ungron: convert gron output back to JSON\n"
-        "  -p, -path      filter path, for example .#.3.population or cities.#.population\n"
-        "                 -p is optional if path starts with . and file with that name doesn't exist\n"
-        "                 More complex path expressions: .{id,users[1:-3:2].{name,address}}\n"
-        "                 [[3]] is an index accessor without outputting on the path.\n"
+        "  -p, -path      filter path, for example .#.3.population or "
+        "cities.#.population\n"
+        "                 -p is optional if path starts with . and file with "
+        "that name doesn't exist\n"
+        "                 More complex path expressions: "
+        ".{id,users[1:-3:2].{name,address}}\n"
+        "                 [[3]] is an index accessor without outputting on the "
+        "path.\n"
         "  --no-indent   don't indent output\n"
         "  --no-newline  no newline inside JSON output\n"
         "  --root        root path, default is json\n"
@@ -114,8 +123,10 @@ void print_help()
         "  --no-spaces   don't add spaces around =\n"
         "  -c, --color   colorize output\n"
         "  --no-color    don't colorize output\n"
-        "\nHome page with more information: https://github.com/adamritter/fastgron\n"
-        "\nIf you have a feature that would help you, open an issue here:\nhttps://github.com/adamritter/fastgron/issues\n";
+        "\nHome page with more information: "
+        "https://github.com/adamritter/fastgron\n"
+        "\nIf you have a feature that would help you, open an issue "
+        "here:\nhttps://github.com/adamritter/fastgron/issues\n";
 }
 
 void print_version()
@@ -214,7 +225,8 @@ std::string download(options opts)
         if (res != CURLE_OK)
         {
             const char *curl_err_msg = curl_easy_strerror(res);
-            cerr << "Error when downloading data: " << string(curl_err_msg) << "\n";
+            cerr << "Error when downloading data: " << string(curl_err_msg)
+                 << "\n";
             exit(EXIT_FAILURE);
         }
         free(s.ptr);
@@ -363,7 +375,8 @@ options parse_options(int argc, char *argv[])
         }
         else
         {
-            if (!is_url(argv[i]) && access(argv[i], F_OK) == -1 && argv[i] != string("-"))
+            if (!is_url(argv[i]) && access(argv[i], F_OK) == -1 &&
+                argv[i] != string("-"))
             {
                 // Treat strings starting with . as paths
                 if (argv[i][0] == '.')
@@ -400,8 +413,10 @@ int main(int argc, char *argv[])
     {
         for (auto &filter : filters)
         {
-            std::transform(filter.begin(), filter.end(), filter.begin(), [](unsigned char c)
-                           { return fast_tolower(c); });
+            std::transform(
+                filter.begin(), filter.end(), filter.begin(),
+                [](unsigned char c) { return fast_tolower(c); }
+            );
         }
     }
 
@@ -429,7 +444,8 @@ int main(int argc, char *argv[])
         // Load string from stdin
         json = padded_string(readFileIntoString(0));
     }
-    else if (curl_found && opts.filename.compare(0, 7, "http://") == 0 || opts.filename.compare(0, 8, "https://") == 0)
+    else if (curl_found && opts.filename.compare(0, 7, "http://") == 0 ||
+             opts.filename.compare(0, 8, "https://") == 0)
     {
         json = padded_string(download(opts));
     }
@@ -463,31 +479,48 @@ int main(int argc, char *argv[])
             string_view line = string_view(data, end - data);
             // find commonality with last line
             int common = 0;
-            while (common < line.size() && common < last_line.size() && line[common] == last_line[common])
+            while (common < line.size() && common < last_line.size() &&
+                   line[common] == last_line[common])
             {
                 common++;
             }
             // if it's not a token ending, make sure we don't use the last token
-            if (common < line.size() && line[common] != ' ' && line[common] != '=' && line[common] != '.' && line[common] != '[')
+            if (common < line.size() && line[common] != ' ' &&
+                line[common] != '=' && line[common] != '.' &&
+                line[common] != '[')
             {
                 common--;
             }
             int index = 0;
-            while (index < parse_gron_builder_offsets.size() && parse_gron_builder_offsets[index] <= common)
+            while (index < parse_gron_builder_offsets.size() &&
+                   parse_gron_builder_offsets[index] <= common)
             {
                 index++;
             }
-            parse_gron_builders.erase(parse_gron_builders.begin() + index, parse_gron_builders.end());
-            parse_gron_builder_offsets.erase(parse_gron_builder_offsets.begin() + index, parse_gron_builder_offsets.end());
-            Builder &passed_builder = parse_gron_builders.empty() ? builder : *parse_gron_builders.back();
-            int offset = parse_gron_builders.empty() ? 0 : parse_gron_builder_offsets.back();
-            parse_gron(line.substr(offset), passed_builder, offset, parse_gron_builders, parse_gron_builder_offsets);
+            parse_gron_builders.erase(
+                parse_gron_builders.begin() + index, parse_gron_builders.end()
+            );
+            parse_gron_builder_offsets.erase(
+                parse_gron_builder_offsets.begin() + index,
+                parse_gron_builder_offsets.end()
+            );
+            Builder &passed_builder = parse_gron_builders.empty()
+                                          ? builder
+                                          : *parse_gron_builders.back();
+            int offset = parse_gron_builders.empty()
+                             ? 0
+                             : parse_gron_builder_offsets.back();
+            parse_gron(
+                line.substr(offset), passed_builder, offset,
+                parse_gron_builders, parse_gron_builder_offsets
+            );
 
             // parse_gron(line, builder, 0);
             last_line = line;
             data = end + 1;
         }
-        if (std::holds_alternative<string_variant>(builder) && std::get<string_variant>(builder) == "")
+        if (std::holds_alternative<string_variant>(builder) &&
+            std::get<string_variant>(builder) == "")
         {
             cerr << "Builder is not assigned\n";
             return EXIT_FAILURE;
@@ -506,7 +539,9 @@ int main(int argc, char *argv[])
             else
             {
                 // Error: not a stream
-                cerr << "Error: input gron file must be an array to be able to output a stream\n";
+                cerr << "Error: input gron file must be an array to be able to "
+                        "output "
+                        "a stream\n";
             }
         }
         else

@@ -1,23 +1,27 @@
 // This file contains the data structure for storing path grammars.
 // Example paths are:
 // .a[1].b.2[4:][-3:]  that contain slices and object accessors.
-// Multiple object accessors can be created like this .{id,users[1].{name,address}}
-// It's also equivalent to this: .{id,users[1].name,users[1].address}
-// Renaming can be supported multiple ways:
-// .{id,user:users[1]:.{name,address}}   or .{id,name:users[1].name,address:users[1].address}
-// or {.id,user.name:users[1].name,user.address:users[1].address}
-// Rewinding or multipath support is needed to support this:
+// Multiple object accessors can be created like this
+// .{id,users[1].{name,address}} It's also equivalent to this:
+// .{id,users[1].name,users[1].address} Renaming can be supported multiple ways:
+// .{id,user:users[1]:.{name,address}}   or
+// .{id,name:users[1].name,address:users[1].address} or
+// {.id,user.name:users[1].name,user.address:users[1].address} Rewinding or
+// multipath support is needed to support this:
 // .{id,user:users[1],name:users[1].name,address:users[1].address}
 // Let's go with multipath. rewriting the last expression looks like this:
 // .{id,user:users[1]:{name,address}}
 // [[1]] is an index accessor without outputting on the path.
 
 #pragma once
-#include <optional>
 #include <cctype>
-#include <variant>
-#include <memory>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <variant>
+#include <vector>
 
 using namespace std;
 
@@ -26,10 +30,11 @@ struct ObjectAccessor;
 struct ObjectAccessors;
 struct AllAccessor;
 
-using ValueAccessor = std::variant<std::monostate,
-                                   std::unique_ptr<Slice>,
-                                   std::unique_ptr<ObjectAccessors>,
-                                   std::unique_ptr<AllAccessor>>;
+using ValueAccessor = std::variant<
+    std::monostate,
+    std::unique_ptr<Slice>,
+    std::unique_ptr<ObjectAccessors>,
+    std::unique_ptr<AllAccessor>>;
 
 // Foreach object key or foreach array index
 struct AllAccessor
@@ -62,13 +67,17 @@ struct ObjectAccessor
 
     inline ObjectAccessor() = default;
 
-    inline ObjectAccessor(std::string key, std::optional<std::string> new_key, ValueAccessor value_accessor)
-        : key(key), new_key(new_key), value_accessor(std::move(value_accessor)){};
+    inline ObjectAccessor(
+        std::string key,
+        std::optional<std::string> new_key,
+        ValueAccessor value_accessor
+    )
+        : key(key), new_key(new_key),
+          value_accessor(std::move(value_accessor)){};
 
     // move constructor
     inline ObjectAccessor(ObjectAccessor &&other) noexcept
-        : key(std::move(other.key)),
-          new_key(std::move(other.new_key)),
+        : key(std::move(other.key)), new_key(std::move(other.new_key)),
           value_accessor(std::move(other.value_accessor)){
 
           };
@@ -95,7 +104,8 @@ ValueAccessor parse_path(std::string_view input);
 
 /*
 
-// encode the example paths in the given data structure. Don't use helper functions.
+// encode the example paths in the given data structure. Don't use helper
+functions.
 // For the path ".a[1].b.2[4:][-3:]"
 vector<ValueAccessor> getPath1()
 {
@@ -112,23 +122,25 @@ vector<ValueAccessor> getPath1()
 // For the path ".{id,users[1].name,users[1].address}"
 vector<ValueAccessor> getPath2()
 {
-    Slice sliceForName = {1, 1, 1, true, ObjectAccessor{"name", "name", std::monostate{}}};
-    Slice sliceForAddress = {1, 1, 1, true, ObjectAccessor{"address", "address", std::monostate{}}};
-    std::vector<ValueAccessor> multipleAccessorsForUsers = {sliceForName, sliceForAddress};
-    ObjectAccessor accessorUsers = {"users", "users", multipleAccessorsForUsers};
-    std::vector<ValueAccessor> rootAccessors2 = {ObjectAccessor{"id", "id", std::monostate{}}, accessorUsers};
-    return rootAccessors2;
+    Slice sliceForName = {1, 1, 1, true, ObjectAccessor{"name", "name",
+std::monostate{}}}; Slice sliceForAddress = {1, 1, 1, true,
+ObjectAccessor{"address", "address", std::monostate{}}};
+    std::vector<ValueAccessor> multipleAccessorsForUsers = {sliceForName,
+sliceForAddress}; ObjectAccessor accessorUsers = {"users", "users",
+multipleAccessorsForUsers}; std::vector<ValueAccessor> rootAccessors2 =
+{ObjectAccessor{"id", "id", std::monostate{}}, accessorUsers}; return
+rootAccessors2;
 }
 
 // For renaming ".{id,user:users[1]:.{name,address}}"
 vector<ValueAccessor> getPath3()
 {
     ValueAccessor inner = {{ObjectAccessor{"name", "name", std::monostate{}},
-                            ObjectAccessor{"address", "address", std::monostate{}}},
-                           false};
-    Slice sliceForAddressWithRename = {1, 1, 1, false, inner};
-    std::vector<ValueAccessor> renamedAccessorsForUsers = {sliceForNameWithRename, sliceForAddressWithRename};
-    ObjectAccessor accessorUsersWithRename = {"users", "user", renamedAccessorsForUsers};
+                            ObjectAccessor{"address", "address",
+std::monostate{}}}, false}; Slice sliceForAddressWithRename = {1, 1, 1, false,
+inner}; std::vector<ValueAccessor> renamedAccessorsForUsers =
+{sliceForNameWithRename, sliceForAddressWithRename}; ObjectAccessor
+accessorUsersWithRename = {"users", "user", renamedAccessorsForUsers};
     std::vector<ValueAccessor> rootAccessors3 = {
         {ObjectAccessor{"id", "id", std::monostate{}}, accessorUsersWithRename},
         false};

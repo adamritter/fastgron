@@ -1,12 +1,16 @@
-#include <string_view>
 #include "parse_gron.hpp"
 #include "jsonutils.hpp"
 #include <stdexcept>
+#include <string_view>
 
 // BUG: ["..."] is not handled
-void parse_gron(string_view line, Builder &builder, int offset,
-                vector<Builder *> &parse_gron_builders,
-                vector<int> &parse_gron_builder_offsets)
+void parse_gron(
+    string_view line,
+    Builder &builder,
+    int offset,
+    vector<Builder *> &parse_gron_builders,
+    vector<int> &parse_gron_builder_offsets
+)
 
 {
     if (line.empty())
@@ -23,7 +27,8 @@ void parse_gron(string_view line, Builder &builder, int offset,
 
         // find end of key
         size_t end = 1;
-        while (end < line.size() && line[end] != '[' && line[end] != '=' && line[end] != ' ' && line[end] != '.')
+        while (end < line.size() && line[end] != '[' && line[end] != '=' &&
+               line[end] != ' ' && line[end] != '.')
         {
             end++;
         }
@@ -35,7 +40,10 @@ void parse_gron(string_view line, Builder &builder, int offset,
         }
         parse_gron_builders.push_back(&child->second);
         parse_gron_builder_offsets.emplace_back(offset + end);
-        parse_gron(line.substr(end), child->second, offset + end, parse_gron_builders, parse_gron_builder_offsets);
+        parse_gron(
+            line.substr(end), child->second, offset + end, parse_gron_builders,
+            parse_gron_builder_offsets
+        );
     }
     else if (line[0] == '[' && line[1] == '"')
     {
@@ -72,7 +80,10 @@ void parse_gron(string_view line, Builder &builder, int offset,
         }
         end++;
         parse_gron_builder_offsets.emplace_back(offset + end);
-        parse_gron(line.substr(end), child->second, offset + end, parse_gron_builders, parse_gron_builder_offsets);
+        parse_gron(
+            line.substr(end), child->second, offset + end, parse_gron_builders,
+            parse_gron_builder_offsets
+        );
     }
     else if (line[0] == '[' && isdigit(line[1]))
     {
@@ -97,12 +108,16 @@ void parse_gron(string_view line, Builder &builder, int offset,
         }
         parse_gron_builders.push_back(&vector_alt[index]);
         parse_gron_builder_offsets.emplace_back(offset + end);
-        parse_gron(line.substr(end), vector_alt[index], offset + end, parse_gron_builders, parse_gron_builder_offsets);
+        parse_gron(
+            line.substr(end), vector_alt[index], offset + end,
+            parse_gron_builders, parse_gron_builder_offsets
+        );
     }
     else if (line[0] == '=' || (line[0] == ' ' && line[1] == '='))
     {
         size_t start = 1;
-        while (start < line.size() && (line[start] == ' ' || line[start] == '='))
+        while (start < line.size() && (line[start] == ' ' || line[start] == '=')
+        )
         {
             start++;
         }

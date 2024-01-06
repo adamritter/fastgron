@@ -1,23 +1,21 @@
 #pragma once
 
-#include <string_view>
 #include <algorithm>
 #include <cstring>
+#include <string_view>
 using std::max;
 using std::string_view;
 
 // Provides a dynamic string storage that grows as needed.
-// Unlike std::string, it doesn't shrink the allocated storage capacity when the end of the string is erased. 
+// Unlike std::string, it doesn't shrink the allocated storage capacity when the
+// end of the string is erased.
 struct growing_string
 {
     char *data;
     size_t len = 0;
     size_t capacity;
 
-    growing_string() : capacity(1000)
-    {
-        data = new char[capacity];
-    }
+    growing_string() : capacity(1000) { data = new char[capacity]; }
 
     bool starts_with(string_view s) const
     {
@@ -41,10 +39,7 @@ struct growing_string
         memcpy(data, s, len);
     }
 
-    ~growing_string()
-    {
-        delete[] data;
-    }
+    ~growing_string() { delete[] data; }
     void reserve_extra(size_t extra)
     {
         if (len + extra > capacity)
@@ -57,10 +52,7 @@ struct growing_string
         }
     }
 
-    string_view view() const
-    {
-        return std::string_view(data, len);
-    }
+    string_view view() const { return std::string_view(data, len); }
 
     growing_string &append(string_view s)
     {
@@ -86,15 +78,9 @@ struct growing_string
         return *this;
     }
 
-    inline size_t size() const
-    {
-        return len;
-    }
+    inline size_t size() const { return len; }
 
-    operator string_view() const
-    {
-        return {data, len};
-    }
+    operator string_view() const { return {data, len}; }
 
     void clear_mem()
     {
