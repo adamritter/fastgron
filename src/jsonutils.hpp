@@ -1,8 +1,8 @@
 #pragma once
-#include <string_view>
-#include <string>
-#include <vector>
 #include <algorithm>
+#include <string>
+#include <string_view>
+#include <vector>
 
 using std::string;
 using std::string_view;
@@ -86,7 +86,6 @@ inline int raw_json_string_length(string_view str)
     return -1;
 }
 
-
 // Returns -1 if end is reached before closing quote
 inline int raw_json_string_length(const char *s)
 {
@@ -124,7 +123,8 @@ inline int raw_json_string_length(const char *s)
     return -1;
 }
 
-inline bool can_show(string_view s, const unsigned flags, vector<string> &filters)
+inline bool
+can_show(string_view s, const unsigned flags, vector<string> &filters)
 {
     if (!filters.empty())
     {
@@ -135,10 +135,10 @@ inline bool can_show(string_view s, const unsigned flags, vector<string> &filter
             {
                 // std::tolower is slow, and doesn't handle UTF-8
                 auto it = std::search(
-                    s.begin(), s.end(),
-                    filter.begin(), filter.end(),
+                    s.begin(), s.end(), filter.begin(), filter.end(),
                     [](unsigned char ch1, unsigned char ch2)
-                    { return fast_tolower(ch1) == (ch2); });
+                    { return fast_tolower(ch1) == (ch2); }
+                );
                 if (it != s.end())
                 {
                     found = true;

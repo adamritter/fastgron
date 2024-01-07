@@ -1,6 +1,6 @@
 #include "print_filtered_path.hpp"
-#include "simdjson.h"
 #include "parse_path.hpp"
+#include "simdjson.h"
 
 using std::to_string;
 
@@ -10,18 +10,26 @@ void exit_with_error(string message)
     exit(EXIT_FAILURE);
 }
 
-#include <string>
-#include <vector>
 #include <iostream>
+#include <string>
 #include <string_view>
+#include <vector>
 
 void print_value_accessor(
     growing_string &path,
-    const ValueAccessor &valueAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters);
+    const ValueAccessor &valueAccessor,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+);
 
 void print_slice(
     growing_string &path,
-    const Slice &slice, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+    const Slice &slice,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     int start = slice.start;
     int end = slice.end;
@@ -45,12 +53,15 @@ void print_slice(
         int path_size = path.size();
         for (auto child : array)
         {
-            if (index >= start && (index < end) && (slice.step == 1 || (index - start) % slice.step == 0))
+            if (index >= start && (index < end) &&
+                (slice.step == 1 || (index - start) % slice.step == 0))
             {
                 path.append("[");
                 path.append(std::to_string(index));
                 path.append("]");
-                print_value_accessor(path, slice.value_accessor, child.value(), flags, filters);
+                print_value_accessor(
+                    path, slice.value_accessor, child.value(), flags, filters
+                );
                 path.erase(path_size);
             }
             index++;
@@ -58,13 +69,19 @@ void print_slice(
     }
     else
     {
-        exit_with_error("Element is not an array or object at path " + string(path));
+        exit_with_error(
+            "Element is not an array or object at path " + string(path)
+        );
     }
 }
 
 void print_object_accessors(
     growing_string &path,
-    const ObjectAccessors &objectAccessors, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+    const ObjectAccessors &objectAccessors,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     int path_size = path.size();
     if (element.type() == simdjson::ondemand::json_type::object)
@@ -80,7 +97,8 @@ void print_object_accessors(
                 if (objectAccessor.key == key)
                 {
                     foundMatch = true;
-                    string key_to_use = objectAccessor.new_key.value_or(objectAccessor.key);
+                    string key_to_use =
+                        objectAccessor.new_key.value_or(objectAccessor.key);
 
                     if (is_js_identifier(key_to_use))
                     {
@@ -94,7 +112,10 @@ void print_object_accessors(
                         path.append("\"]");
                     }
 
-                    print_value_accessor(path, objectAccessor.value_accessor, field.value(), flags, filters);
+                    print_value_accessor(
+                        path, objectAccessor.value_accessor, field.value(),
+                        flags, filters
+                    );
 
                     path.erase(path_size);
 
@@ -116,7 +137,9 @@ void print_object_accessors(
                     path.append("\"]");
                 }
 
-                recursive_print_gron(field.value(), path, batched_out, flags, filters);
+                recursive_print_gron(
+                    field.value(), path, batched_out, flags, filters
+                );
 
                 path.erase(path_size);
             }
@@ -130,7 +153,11 @@ void print_object_accessors(
 
 void print_all_accessor(
     growing_string &path,
-    const AllAccessor &allAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+    const AllAccessor &allAccessor,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     if (element.type() == simdjson::ondemand::json_type::array)
     {
@@ -142,7 +169,9 @@ void print_all_accessor(
             path.append("[");
             path.append(std::to_string(index++));
             path.append("]");
-            print_value_accessor(path, allAccessor.value_accessor, child.value(), flags, filters);
+            print_value_accessor(
+                path, allAccessor.value_accessor, child.value(), flags, filters
+            );
             path.erase(path_size);
         }
     }
@@ -166,19 +195,27 @@ void print_all_accessor(
                 path.append("\"]");
             }
 
-            print_value_accessor(path, allAccessor.value_accessor, field.value(), flags, filters);
+            print_value_accessor(
+                path, allAccessor.value_accessor, field.value(), flags, filters
+            );
             path.erase(path_size);
         }
     }
     else
     {
-        exit_with_error("Element is not an array or object at path " + string(path));
+        exit_with_error(
+            "Element is not an array or object at path " + string(path)
+        );
     }
 }
 
 void print_value_accessor(
     growing_string &path,
-    const ValueAccessor &valueAccessor, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+    const ValueAccessor &valueAccessor,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     if (std::holds_alternative<std::monostate>(valueAccessor))
     {
@@ -191,16 +228,23 @@ void print_value_accessor(
         const auto &slicePtr = std::get<std::unique_ptr<Slice>>(valueAccessor);
         print_slice(path, *slicePtr, element, flags, filters);
     }
-    else if (std::holds_alternative<std::unique_ptr<ObjectAccessors>>(valueAccessor))
+    else if (std::holds_alternative<std::unique_ptr<ObjectAccessors>>(
+                 valueAccessor
+             ))
     {
         // Value accessor is a set of object accessors, handle it
-        const auto &objectAccessorsPtr = std::get<std::unique_ptr<ObjectAccessors>>(valueAccessor);
-        print_object_accessors(path, *objectAccessorsPtr, element, flags, filters);
+        const auto &objectAccessorsPtr =
+            std::get<std::unique_ptr<ObjectAccessors>>(valueAccessor);
+        print_object_accessors(
+            path, *objectAccessorsPtr, element, flags, filters
+        );
     }
-    else if (std::holds_alternative<std::unique_ptr<AllAccessor>>(valueAccessor))
+    else if (std::holds_alternative<std::unique_ptr<AllAccessor>>(valueAccessor
+             ))
     {
         // Value accessor is an all accessor, handle it
-        const auto &allAccessorPtr = std::get<std::unique_ptr<AllAccessor>>(valueAccessor);
+        const auto &allAccessorPtr =
+            std::get<std::unique_ptr<AllAccessor>>(valueAccessor);
         print_all_accessor(path, *allAccessorPtr, element, flags, filters);
     }
     else
@@ -209,7 +253,13 @@ void print_value_accessor(
     }
 }
 
-void print_filtered_path(growing_string &path, int processed, simdjson::ondemand::value element, const unsigned flags, vector<string> &filters)
+void print_filtered_path(
+    growing_string &path,
+    int processed,
+    simdjson::ondemand::value element,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     string_view input = path.view().substr(processed);
     ValueAccessor valueAccessor = parse_path(input);

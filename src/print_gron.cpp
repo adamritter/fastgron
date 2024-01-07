@@ -16,8 +16,13 @@ inline char *print_equals(char *ptr, const unsigned flags)
     return ptr;
 }
 
-void recursive_print_gron(simdjson::ondemand::value element, growing_string &path, growing_string &out_growing_string,
-                          const unsigned flags, vector<string> &filters)
+void recursive_print_gron(
+    simdjson::ondemand::value element,
+    growing_string &path,
+    growing_string &out_growing_string,
+    const unsigned flags,
+    vector<string> &filters
+)
 {
     switch (element.type())
     {
@@ -57,7 +62,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
                 path.append("\033[1;34m]\033[0m");
             else
                 path.append("]");
-            recursive_print_gron(child.value(), path, out_growing_string, flags, filters);
+            recursive_print_gron(
+                child.value(), path, out_growing_string, flags, filters
+            );
             path.erase(base_len);
         }
         path.erase(orig_base_len);
@@ -82,7 +89,8 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
         path.append('\n');
         gprint(path, out_growing_string, flags, filters);
         path.erase(base_len);
-        // fastgron can directly stream results to out_growing_string if we don't need to sort the output
+        // fastgron can directly stream results to out_growing_string if we
+        // don't need to sort the output
         if (flags & SORT_OUTPUT)
         {
             std::vector<std::pair<string, string>> fields;
@@ -91,7 +99,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             {
                 auto key_orig = field.key();
                 auto key_value_raw = key_orig.value().raw();
-                auto key =  string_view(key_value_raw, raw_json_string_length(key_value_raw));
+                auto key = string_view(
+                    key_value_raw, raw_json_string_length(key_value_raw)
+                );
 
                 string key_str(key);
                 if (!is_js_identifier(key))
@@ -121,8 +131,10 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
                 fields.emplace_back(key_str, string(out2));
                 out2.erase(0);
             }
-            std::sort(fields.begin(), fields.end(), [](auto &a, auto &b)
-                      { return a.first < b.first; });
+            std::sort(
+                fields.begin(), fields.end(),
+                [](auto &a, auto &b) { return a.first < b.first; }
+            );
             for (auto &field : fields)
             {
                 out_growing_string.append(field.second);
@@ -135,7 +147,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             {
                 auto key_orig = field.key();
                 auto key_value_raw = key_orig.value().raw();
-                auto key =  string_view(key_value_raw, raw_json_string_length(key_value_raw));
+                auto key = string_view(
+                    key_value_raw, raw_json_string_length(key_value_raw)
+                );
                 if (!is_js_identifier(key))
                 {
                     if (flags & COLOR)
@@ -157,7 +171,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
                     if (flags & COLOR)
                         path.append("\033[0m");
                 }
-                recursive_print_gron(field.value(), path, out_growing_string, flags, filters);
+                recursive_print_gron(
+                    field.value(), path, out_growing_string, flags, filters
+                );
                 path.erase(base_len);
             }
         }
@@ -171,7 +187,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
         size_t orig_out_len = out_growing_string.size();
         size_t path_size = path.size();
         string_view s = element.raw_json_token();
-        out_growing_string.reserve_extra(path_size + orig_out_len + s.length() + 30);
+        out_growing_string.reserve_extra(
+            path_size + orig_out_len + s.length() + 30
+        );
         char *ptr = &out_growing_string.data[orig_out_len];
         memcpy(ptr, path.data, path_size);
         ptr += path_size;
@@ -201,8 +219,9 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             }
             *ptr++ = 'm';
         }
-        while (s.size() > 0 && (s[s.size() - 1] == ' ' || s[s.size() - 1] == '\n' ||
-            s[s.size() - 1] == '\r' || s[s.size() - 1] == '\t'))
+        while (s.size() > 0 &&
+               (s[s.size() - 1] == ' ' || s[s.size() - 1] == '\n' ||
+                s[s.size() - 1] == '\r' || s[s.size() - 1] == '\t'))
         {
             s.remove_suffix(1);
         }
@@ -220,7 +239,10 @@ void recursive_print_gron(simdjson::ondemand::value element, growing_string &pat
             *ptr++ = ';';
         }
         *ptr++ = '\n';
-        string_view ss = string_view(&out_growing_string.data[orig_out_len], ptr - &out_growing_string.data[orig_out_len]);
+        string_view ss = string_view(
+            &out_growing_string.data[orig_out_len],
+            ptr - &out_growing_string.data[orig_out_len]
+        );
         if (can_show(ss, flags, filters))
         {
             if (flags & COLORIZE_MATCHES)

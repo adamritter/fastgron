@@ -1,31 +1,29 @@
-#include <string>
-#include <vector>
-#include <optional>
-#include <cctype>
-#include <variant>
 #include "parse_path.hpp"
-#include <iostream>
 #include <algorithm>
+#include <cctype>
+#include <iostream>
+#include <optional>
+#include <string>
+#include <variant>
+#include <vector>
 
 using namespace std;
 
-bool isIdentifierChar(char c)
-{
-    return std::isalnum(c) || c == '_';
-}
+bool isIdentifierChar(char c) { return std::isalnum(c) || c == '_'; }
 
-inline bool isDigitOrMinus(char c)
-{
-    return std::isdigit(c) || c == '-';
-}
+inline bool isDigitOrMinus(char c) { return std::isdigit(c) || c == '-'; }
 
 // TODO: Implement batching later
 void ObjectAccessors::batchOrInsert(ObjectAccessor object_accessor)
 {
-    std::vector<ObjectAccessor>::iterator it = std::lower_bound(object_accessors.begin(), object_accessors.end(), object_accessor);
+    std::vector<ObjectAccessor>::iterator it = std::lower_bound(
+        object_accessors.begin(), object_accessors.end(), object_accessor
+    );
     if (it != object_accessors.end())
     {
-        throw std::runtime_error("Cannot insert a value accessor for a key that already exists.");
+        throw std::runtime_error(
+            "Cannot insert a value accessor for a key that already exists."
+        );
     }
     else
     {
@@ -35,24 +33,24 @@ void ObjectAccessors::batchOrInsert(ObjectAccessor object_accessor)
 
 class Parser
 {
-public:
+  public:
     Parser(const std::string_view &input) : input_(input), index_(0) {}
 
-    ValueAccessor parse()
-    {
-        return parseValueAccessor();
-    }
+    ValueAccessor parse() { return parseValueAccessor(); }
 
-private:
+  private:
     std::string_view lookAhead(int N)
     {
         // Ensure we're not exceeding the bounds of the input string.
         if (index_ + N > input_.size())
         {
-            throw std::runtime_error("Attempted to look ahead beyond the end of input.");
+            throw std::runtime_error(
+                "Attempted to look ahead beyond the end of input."
+            );
         }
 
-        // Return a view of the next N characters from the input string without advancing the index.
+        // Return a view of the next N characters from the input string without
+        // advancing the index.
         return std::string_view(input_).substr(index_, N);
     }
 
@@ -61,7 +59,9 @@ private:
         // Ensure we're not exceeding the bounds of the input string.
         if (index_ + N > input_.size())
         {
-            throw std::runtime_error("Attempted to consume beyond the end of input.");
+            throw std::runtime_error(
+                "Attempted to consume beyond the end of input."
+            );
         }
 
         // Advance the index by N characters.
@@ -83,8 +83,12 @@ private:
             }
             accessors.object_accessors.emplace_back(parseObjectAccessor());
         }
-        sort(accessors.object_accessors.begin(), accessors.object_accessors.end(), [](const ObjectAccessor &a, const ObjectAccessor &b)
-             { return a.key < b.key; });
+        sort(
+            accessors.object_accessors.begin(),
+            accessors.object_accessors.end(),
+            [](const ObjectAccessor &a, const ObjectAccessor &b)
+            { return a.key < b.key; }
+        );
         return accessors;
     }
 
@@ -141,8 +145,11 @@ private:
                 ObjectAccessors objectAccessors;
                 string key = parseJSONString();
                 expect(']');
-                objectAccessors.object_accessors.emplace_back(ObjectAccessor{key, nullopt, parseValueAccessor()});
-                return std::make_unique<ObjectAccessors>(std::move(objectAccessors));
+                objectAccessors.object_accessors.emplace_back(ObjectAccessor{
+                    key, nullopt, parseValueAccessor()});
+                return std::make_unique<ObjectAccessors>(
+                    std::move(objectAccessors)
+                );
             }
             else
             {
@@ -153,7 +160,8 @@ private:
         {
             ObjectAccessors objectAccessors = parseObjectAccessors();
             expect('}');
-            return std::make_unique<ObjectAccessors>(std::move(objectAccessors));
+            return std::make_unique<ObjectAccessors>(std::move(objectAccessors)
+            );
         }
         else if (match('.'))
         {
@@ -161,7 +169,9 @@ private:
             {
                 ObjectAccessors objectAccessors = parseObjectAccessors();
                 expect('}');
-                return std::make_unique<ObjectAccessors>(std::move(objectAccessors));
+                return std::make_unique<ObjectAccessors>(
+                    std::move(objectAccessors)
+                );
             }
             Slice slice;
             if (match('#'))
@@ -182,13 +192,20 @@ private:
             {
                 ObjectAccessor objectAccessor = parseObjectAccessor();
                 ObjectAccessors objectAccessors;
-                objectAccessors.object_accessors.emplace_back(std::move(objectAccessor));
-                return std::make_unique<ObjectAccessors>(std::move(objectAccessors));
+                objectAccessors.object_accessors.emplace_back(
+                    std::move(objectAccessor)
+                );
+                return std::make_unique<ObjectAccessors>(
+                    std::move(objectAccessors)
+                );
             }
 
             else
             {
-                throw std::runtime_error("Expected a value accessor, path: " + std::string(input_) + " index: " + std::to_string(index_));
+                throw std::runtime_error(
+                    "Expected a value accessor, path: " + std::string(input_) +
+                    " index: " + std::to_string(index_)
+                );
             }
         }
         else if (index_ == input_.length() || input_[index_] == ',' || input_[index_] == '}')
@@ -197,12 +214,14 @@ private:
         }
         else
         {
-            throw std::runtime_error("Expected a value accessor, path: " + std::string(input_) + " index: " + std::to_string(index_));
+            throw std::runtime_error(
+                "Expected a value accessor, path: " + std::string(input_) +
+                " index: " + std::to_string(index_)
+            );
         }
     }
 
-    Slice
-    parseSlice()
+    Slice parseSlice()
     {
         Slice slice;
         if (match('[')) // Double [
@@ -210,7 +229,10 @@ private:
             slice.append_index = false;
             if (!tryParseInt(slice.start))
             {
-                throw std::runtime_error("Expected a value accessor, path: " + std::string(input_) + " index: " + std::to_string(index_));
+                throw std::runtime_error(
+                    "Expected a value accessor, path: " + std::string(input_) +
+                    " index: " + std::to_string(index_)
+                );
             }
             expect(']');
             slice.end = slice.start + 1;
@@ -272,7 +294,9 @@ private:
         skipWhitespace();
         if (index_ >= input_.size() || input_[index_] != c)
         {
-            throw std::runtime_error("Expected character '" + std::string(1, c) + "' not found.");
+            throw std::runtime_error(
+                "Expected character '" + std::string(1, c) + "' not found."
+            );
         }
         ++index_;
     }
@@ -296,7 +320,7 @@ private:
         }
     }
 
-private:
+  private:
     const std::string_view &input_;
     std::size_t index_;
 };
@@ -308,7 +332,8 @@ void debug_print_path(ValueAccessor &valueAccessor);
 
 void debug_print_path(Slice &slice)
 {
-    cout << "Slice: " << slice.start << " " << slice.end << " " << slice.step << endl;
+    cout << "Slice: " << slice.start << " " << slice.end << " " << slice.step
+         << endl;
 }
 
 void debug_print_path(AllAccessor &allAccessor)
@@ -341,13 +366,19 @@ void debug_print_path(ValueAccessor &valueAccessor)
     {
         debug_print_path(*std::get<std::unique_ptr<Slice>>(valueAccessor));
     }
-    else if (std::holds_alternative<std::unique_ptr<ObjectAccessors>>(valueAccessor))
+    else if (std::holds_alternative<std::unique_ptr<ObjectAccessors>>(
+                 valueAccessor
+             ))
     {
-        debug_print_path(*std::get<std::unique_ptr<ObjectAccessors>>(valueAccessor));
+        debug_print_path(
+            *std::get<std::unique_ptr<ObjectAccessors>>(valueAccessor)
+        );
     }
-    else if (std::holds_alternative<std::unique_ptr<AllAccessor>>(valueAccessor))
+    else if (std::holds_alternative<std::unique_ptr<AllAccessor>>(valueAccessor
+             ))
     {
-        debug_print_path(*std::get<std::unique_ptr<AllAccessor>>(valueAccessor));
+        debug_print_path(*std::get<std::unique_ptr<AllAccessor>>(valueAccessor)
+        );
     }
 }
 

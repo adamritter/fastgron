@@ -2,9 +2,13 @@
 #include "batched_print.hpp"
 #include "jsonutils.hpp"
 
-void print_json_inner(Builder& builder, const unsigned flags, growing_string &indent);
+void print_json_inner(
+    Builder &builder, const unsigned flags, growing_string &indent
+);
 
-void print_vector(Vector &vector_holder, const unsigned flags, growing_string &indent)
+void print_vector(
+    Vector &vector_holder, const unsigned flags, growing_string &indent
+)
 {
     batched_out.append('[');
     if (flags & NEWLINE)
@@ -80,7 +84,9 @@ void print_map(Map &map_holder, const unsigned flags, growing_string &indent)
     batched_print("}");
 }
 
-void print_json_inner(Builder& builder, const unsigned flags, growing_string &indent)
+void print_json_inner(
+    Builder &builder, const unsigned flags, growing_string &indent
+)
 {
     if (std::holds_alternative<string_variant>(builder))
     {
@@ -102,7 +108,7 @@ void print_json_inner(Builder& builder, const unsigned flags, growing_string &in
     }
 }
 
-void print_json(Builder& builder, const unsigned flags)
+void print_json(Builder &builder, const unsigned flags)
 {
     growing_string indent;
     batched_out.reserve_extra(1000000);

@@ -46,10 +46,7 @@ inline void batched_print(string_view s)
     batched_print_flush_if_needed();
 }
 
-inline void batched_print_no_flush(string_view s)
-{
-    batched_out.append(s);
-}
+inline void batched_print_no_flush(string_view s) { batched_out.append(s); }
 
 inline void batched_print(char c)
 {
