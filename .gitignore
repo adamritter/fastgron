@@ -41,3 +41,19 @@
 /.direnv/
 /.pre-commit-config.yaml
 /result
+
+# CMake
+/include/version.h
+CMakeCache.txt
+CMakeFiles
+CMakeLists.txt.user
+CMakeScripts
+CMakeUserPresets.json
+CTestTestfile.cmake
+DartConfiguration.tcl
+Makefile
+Testing
+_deps
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
