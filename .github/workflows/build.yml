@@ -12,7 +12,7 @@ jobs:
         run: sudo apt-get install libcurl4-openssl-dev
       - name: Install OpenSSL
         run: sudo apt-get install libssl-dev
-      - name: Install ZLIB  (for libcurl)
+      - name: Install ZLIB (for libcurl)
         run: sudo apt-get install zlib1g-dev
 
       - name: Build
@@ -33,7 +33,7 @@ jobs:
         run: sudo apt-get install libcurl4-openssl-dev
       - name: Install OpenSSL
         run: sudo apt-get install libssl-dev
-      - name: Install ZLIB  (for libcurl)
+      - name: Install ZLIB (for libcurl)
         run: sudo apt-get install zlib1g-dev
 
       - name: Build
@@ -107,7 +107,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++  ..
+          cmake ..
           cmake --build . --verbose
         env:
           CXX_ARCH_FLAGS: -arch x86_64 -arch arm64
